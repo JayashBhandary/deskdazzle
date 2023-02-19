@@ -6,8 +6,15 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "convert": "^4.10.0",
+    "crypto-js": "^4.1.1",
+    "firebase": "^9.17.1",
+    "html2canvas": "^1.4.1",
+    "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
+    "react-color-palette": "^6.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4",
     "workbox-background-sync": "^6.5.4",
@@ -24,6 +31,7 @@
     "workbox-streams": "^6.5.4"
   },
   "scripts": {
+    "deploy": "npm run build && firebase deploy",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -46,5 +54,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "workbox-build": "^6.5.4",
+    "workbox-webpack-plugin": "^6.5.4"
   }
 }

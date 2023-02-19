@@ -1,3 +1,14 @@
+* {
+  margin: 0;
+  padding: 0;
+  --light-background-color: #ffffff;
+  --light-font-color: #171717;
+  --dark-background-color: #171717;
+  --dark-font-color: #c7c7c7;
+  --transition-duration: 0.3s;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
