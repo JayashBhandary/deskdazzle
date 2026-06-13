@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react'
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { ThemeContext } from '../App';
 
 function Donate() {
@@ -21,7 +21,7 @@ function Donate() {
                         <div className='donate__qr' >
                         <p>Scan the QR Code to donate. Thank you!!!</p>
 
-                            <QRCode value={`upi://pay?pa=jayashbhandary.famc@idfcbank&pn=DeskDazzle&am=${amount}`} size={200} onClick={async () => {
+                            <QRCodeSVG value={`upi://pay?pa=jayashbhandary.famc@idfcbank&pn=DeskDazzle&am=${amount}`} size={200} onClick={async () => {
                                 try {
                                     const data = {
                                         text: `jayashbhandary.famc@idfcbank`

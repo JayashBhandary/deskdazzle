@@ -1,11 +1,9 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { ColorPicker, useColor } from "react-color-palette";
-import "react-color-palette/lib/css/styles.css";
-import { ThemeContext } from '../App';
+import "react-color-palette/css";
 
 function ColorPickers() {
-  const { theme } = useContext(ThemeContext);
-  const [color, setColor] = useColor("hex", "#121212");
+  const [color, setColor] = useColor("#121212");
 
   const copyToClipboard = (text) => {
     navigator.permissions.query({ name: "clipboard-write" }).then((result) => {
@@ -39,11 +37,9 @@ function ColorPickers() {
 
           </div>
 
-          <ColorPicker width={300}
+          <ColorPicker
             color={color}
             onChange={setColor}
-            dark={!theme}
-
           />
 
         </div>

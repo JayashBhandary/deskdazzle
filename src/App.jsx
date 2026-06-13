@@ -100,25 +100,25 @@ function App() {
             <Route path='/blogs' element={<Blog />} />
             <Route path='/profile' element={<Profile />} />
             {/* App Routes */}
-            1<Route path="/currency-converter" element={<CurrencyConverter />} />
-            2<Route path='/budget-tracker' element={<BudgetTracker />} />
-            3<Route path="/unit-converter" element={<UnitConverter />} />
-            4<Route path="/to-do-list"  element={<ToDoList />} />
-            5<Route path="/password-generator" element={<PasswordGenerator />} />
-            6<Route path="/text-encryptor" element={<TextEncryptor />} />
-            7<Route path='/color-picker' element={<ColorPickers />} />
-            8<Route path="/gradient-generator" element={<GradientGenerator />} />
-            9<Route path='/image-resizer' element={<ImageResizer />} />
-            10<Route path='/markdown-previewer' element={<MarkdownPreviewer />} />
-            11<Route path='/qrcode-generator' element={<QRCodeGenerator />} />
-            12<Route path='/calender' element={<Calender />} />
-            13<Route path='/image-optimizer' element={<ImageOptimizer />} />
-            14<Route path='/translation-tool' element={<TranslationTool />} />
-            15<Route path='/url-shortner' element={<URLShortner />} />
-            16<Route path='/text-to-speech' element={<TextToSpeech />} />
-            17<Route path='/note-taking' element={<NoteTaking />} />
-            18<Route path='/recipe-finder' element={<RecipeFinder />} />
-            19<Route path='/weather' element={<WeatherApp />} />        
+            <Route path="/currency-converter" element={<CurrencyConverter />} />
+            <Route path='/budget-tracker' element={<BudgetTracker />} />
+            <Route path="/unit-converter" element={<UnitConverter />} />
+            <Route path="/to-do-list"  element={<ToDoList />} />
+            <Route path="/password-generator" element={<PasswordGenerator />} />
+            <Route path="/text-encryptor" element={<TextEncryptor />} />
+            <Route path='/color-picker' element={<ColorPickers />} />
+            <Route path="/gradient-generator" element={<GradientGenerator />} />
+            <Route path='/image-resizer' element={<ImageResizer />} />
+            <Route path='/markdown-previewer' element={<MarkdownPreviewer />} />
+            <Route path='/qrcode-generator' element={<QRCodeGenerator />} />
+            <Route path='/calender' element={<Calender />} />
+            <Route path='/image-optimizer' element={<ImageOptimizer />} />
+            <Route path='/translation-tool' element={<TranslationTool />} />
+            <Route path='/url-shortner' element={<URLShortner />} />
+            <Route path='/text-to-speech' element={<TextToSpeech />} />
+            <Route path='/note-taking' element={<NoteTaking />} />
+            <Route path='/recipe-finder' element={<RecipeFinder />} />
+            <Route path='/weather' element={<WeatherApp />} />
             <Route path='/calculator' element={<Calculator />} />   
             <Route path='/docs' element={<Docs />} />    
             <Route path='/donate' element={<Donate />} />      
