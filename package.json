@@ -6,8 +6,10 @@
   "dependencies": {
     "convert": "^7.0.0",
     "crypto-js": "^4.2.0",
+    "dompurify": "^3.4.10",
     "firebase": "^12.14.0",
     "html2canvas": "^1.4.1",
+    "marked": "^18.0.5",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-color-palette": "^7.3.1",

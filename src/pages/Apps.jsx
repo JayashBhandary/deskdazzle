@@ -13,7 +13,7 @@ function Apps() {
       
       <div className='content'>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/currency-converter'><p style={{fontSize: '45px',padding: '10px'}}>💰</p><p>CurrencyConverter</p></Link>
-      {/*<Link className={`header_button ${theme ? "dark": "light"}`} to='/budget-tracker'>💳 BudgetTracker</Link>*/}
+      <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/budget-tracker'><p style={{fontSize: '45px',padding: '10px'}}>💳</p><p>BudgetTracker</p></Link>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/unit-converter'><p style={{fontSize: '45px',padding: '10px'}}>📏</p><p>UnitConverter</p></Link>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/to-do-list'><p style={{fontSize: '45px',padding: '10px'}}>📝</p><p>ToDoList</p></Link>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/password-generator'><p style={{fontSize: '45px',padding: '10px'}}>🔑</p><p>PasswordGenerator</p></Link>
@@ -31,6 +31,7 @@ function Apps() {
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/note-taking'><p style={{fontSize: '45px',padding: '10px'}}>💡</p><p>NoteTaking</p></Link>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/weather'><p style={{fontSize: '45px',padding: '10px'}}>🌦️</p><p>WeatherApp</p></Link>
       <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/calculator'><p style={{fontSize: '45px',padding: '10px'}}>🧮</p><p>Calculator</p></Link>
+      <Link style={{width: '145px', display: 'flex',flexDirection: 'column',alignItems: 'center'}} className={`header_button ${theme ? "dark": "light"}`} to='/recipe-finder'><p style={{fontSize: '45px',padding: '10px'}}>📜</p><p>RecipeFinder</p></Link>
       </div>
       </div>
     </div>

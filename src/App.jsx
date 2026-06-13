@@ -2,9 +2,12 @@ import React, { useState, createContext, useEffect } from 'react';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import './App.css';
 import './style.css';
+import './tools.css';
+import './desktop.css';
 import Apps from './pages/Apps';
 import Blog from './pages/Blog';
 import Home from './pages/Home';
+import Desktop from './pages/Desktop';
 import Header from './components/Header';
 
 import ColorPickers from './pages/ColorPicker';
@@ -43,59 +46,51 @@ export const ThemeContext = createContext();
 function App() {
 
   const [theme, setTheme] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [todos, setTodos] = useState([]);
 
-  const [todos, setTodos] = useState([])
-
-  useEffect(()=>{
-    if(auth.currentUser !== null) {
-      const docRef = doc(db, "users", auth.currentUser?.uid);
-        async function getData(){
-          const docSnap = await getDoc(docRef);
-          const todoss = docSnap?.data()['todos']
-          const themes = docSnap?.data()['theme']
-          setTheme(themes)
-          setTodos(todoss)
-          console.log(todoss.length)
-        }
-        getData()
-    } else {
-      console.log("Please sign in")
-    }
-  },[isLoggedIn])
-
+  // Auth state is the single source of truth: when it resolves, load the
+  // user's saved theme + todos from Firestore.
   useEffect(() => {
-    if (auth.currentUser !== null) {
-      const docRef = doc(db, "users", auth.currentUser?.uid);
-      updateDoc(docRef, {
-        theme: theme
-      })
-    } else {
-      console.log("Please sign in")
-    }
-  }, [theme])
-
-
-  useEffect(()=>{
-    onAuthStateChanged(auth, (user) => {
-      console.log(user)
-      if(user == null) {
-        setIsLoggedIn(true);
-      }else {
-        setIsLoggedIn(false)
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setIsLoggedIn(!!currentUser);
+      if (currentUser) {
+        try {
+          const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (typeof data.theme === "boolean") setTheme(data.theme);
+            setTodos(Array.isArray(data.todos) ? data.todos : []);
+          }
+        } catch (error) {
+          console.error("Failed to load user data:", error);
+        }
+      } else {
+        setTodos([]);
       }
-    })
-  }, [])
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Persist the theme whenever it changes (only while signed in).
+  useEffect(() => {
+    if (auth.currentUser) {
+      updateDoc(doc(db, "users", auth.currentUser.uid), { theme }).catch(() => {});
+    }
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isLoggedIn, setIsLoggedIn, todos, setTodos }}>
+    <ThemeContext.Provider value={{ theme, setTheme, isLoggedIn, setIsLoggedIn, user, todos, setTodos }}>
       <BrowserRouter>
         <div className={`app ${theme ? "dark" : "light"}`}>
         <Link className={`header_button donate_link`} style={{background: theme ? "#ffffff": "#171717", color: theme ? "#171717" : "#ffffff",border: 'none'}} to='/donate'>🙌 Donate</Link>
           <Header />
           <main style={{height: '100%',minHeight: '100vh'}}>
           <Routes>
-            <Route path='/' element={<Home />} />
+            <Route path='/' element={<Desktop />} />
+            <Route path='/home' element={<Home />} />
             <Route path='/apps' element={<Apps />} />
             <Route path='/blogs' element={<Blog />} />
             <Route path='/profile' element={<Profile />} />

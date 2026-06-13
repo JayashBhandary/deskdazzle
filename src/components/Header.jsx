@@ -9,9 +9,7 @@ function Header() {
 
   const provider = new GoogleAuthProvider();
 
-  const { theme, setTheme, isLoggedIn } = useContext(ThemeContext);
-
-  const currentUser = auth.currentUser;
+  const { theme, setTheme, isLoggedIn, user } = useContext(ThemeContext);
 
 
   const handleThemeChange = () => {
@@ -78,8 +76,8 @@ function Header() {
         
         {
           isLoggedIn
-            ? <label className={`header_button ${theme ? "dark" : "light"}`} onClick={googlePop}>🔑</label>
-            : <Link style={{ width: '50px', height: '50px', padding: '0px', borderRadius: '50px' }} className={`header_button ${theme ? "dark" : "light"}`} to="/profile"><img alt='profile' style={{ borderRadius: '50px', width: '15px', height: '15pxpx', objectFit: 'cover' }} src={currentUser.photoURL} /></Link>
+            ? <Link style={{ width: '50px', height: '50px', padding: '0px', borderRadius: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className={`header_button ${theme ? "dark" : "light"}`} to="/profile"><img alt='profile' style={{ borderRadius: '50px', width: '30px', height: '30px', objectFit: 'cover' }} src={user?.photoURL} /></Link>
+            : <label className={`header_button ${theme ? "dark" : "light"}`} style={{ cursor: 'pointer' }} onClick={googlePop}>🔑</label>
         }
       </div>
     </header>

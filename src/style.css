@@ -187,6 +187,8 @@
 
 .card {
     display: flex;
+    width: 100%;
+    max-width: 420px;
 }
 
 .submit-btn {
@@ -200,8 +202,11 @@
 
 .card input {
     font-family: 'Courier New', Courier, monospace;
-    width: 270px;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
     padding: 20px;
+    box-sizing: border-box;
     color: var(--light-font-color);
     border-radius: 50px 0px 0px 50px;
     border: 1px solid rgba(100, 100, 100, 0.5);
@@ -368,6 +373,21 @@
 }
 
 
+/* Tablet */
+@media screen and (max-width: 900px) {
+    .page__content label {
+        font-size: 40px;
+    }
+
+    .currency__label {
+        font-size: 32px;
+        letter-spacing: 4px;
+    }
+
+    .inputconvert h2 {
+        font-size: 36px;
+    }
+}
 
 
 @media screen and (max-width: 600px) {
@@ -391,6 +411,15 @@
 
     .currency__page {
         flex-direction: column;
+    }
+
+    .currency__label {
+        font-size: 22px;
+        letter-spacing: 2px;
+    }
+
+    .inputconvert h2 {
+        font-size: 28px;
     }
 
     .password {
