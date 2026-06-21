@@ -1,7 +1,5 @@
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useState, useContext } from 'react'
 import { ThemeContext } from '../App';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
 
 function ToDoList() {
   const { theme, todos, setTodos } = useContext(ThemeContext);
@@ -30,16 +28,7 @@ function ToDoList() {
     setTodos(newTodos);
   };
 
-  useEffect(() => {
-    if (auth.currentUser !== null) {
-      const docRef = doc(db, "users", auth.currentUser?.uid);
-      updateDoc(docRef, {
-        todos: todos
-      })
-    } else {
-      console.log("Please sign in")
-    }
-  }, [todos])
+  // Persistence is handled centrally by setTodos (useUserData → Realtime DB).
 
   return (
     <div className='page'>

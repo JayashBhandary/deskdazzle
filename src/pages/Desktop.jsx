@@ -1,8 +1,7 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom';
 import { ThemeContext } from '../App';
 import DesktopWindow from '../components/DesktopWindow';
-import { useDesktopLayout } from '../hooks/useDesktopLayout';
 
 import ClockWidget from '../widgets/ClockWidget';
 import TodoWidget from '../widgets/TodoWidget';
@@ -35,8 +34,16 @@ const DEFAULT_LAYOUT = [
 ];
 
 function Desktop() {
-  const { theme, user, isLoggedIn } = useContext(ThemeContext);
-  const [windows, setWindows] = useDesktopLayout(user, DEFAULT_LAYOUT);
+  const { theme, isLoggedIn, desktop, setDesktop } = useContext(ThemeContext);
+  // Desktop layout is loaded/persisted centrally (useUserData → Realtime DB).
+  // Fall back to the first-visit layout until a saved one exists.
+  const windows = (Array.isArray(desktop) && desktop.length) ? desktop : DEFAULT_LAYOUT;
+  const setWindows = useCallback((updater) => {
+    setDesktop((prev) => {
+      const base = (Array.isArray(prev) && prev.length) ? prev : DEFAULT_LAYOUT;
+      return typeof updater === 'function' ? updater(base) : updater;
+    });
+  }, [setDesktop]);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
@@ -84,6 +91,24 @@ function Desktop() {
     const top = prev.reduce((m, w) => Math.max(m, w.z || 0), 0) + 1;
     return prev.map((w) => (w.id === id ? { ...w, minimized: false, z: top } : w));
   });
+
+  // Number keys 1–8 open (or restore) the matching widget. Ignored while the
+  // user is typing into a widget input.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
+      const idx = parseInt(e.key, 10) - 1;
+      if (Number.isNaN(idx) || idx < 0 || idx >= ORDER.length) return;
+      const type = ORDER[idx];
+      const win = windows.find((w) => w.id === type);
+      if (win?.minimized) restore(type); else open(type);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [windows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openIds = new Set(windows.map((w) => w.id));
   const visibleCount = windows.filter((w) => !w.minimized).length;

@@ -1,11 +1,11 @@
-import React, { useState, createContext, useEffect } from 'react';
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import React, { useState, createContext, useEffect, useMemo } from 'react';
+import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import './style.css';
 import './tools.css';
 import './desktop.css';
+import './ui.css';
 import Apps from './pages/Apps';
-import Blog from './pages/Blog';
 import Home from './pages/Home';
 import Desktop from './pages/Desktop';
 import Header from './components/Header';
@@ -31,59 +31,59 @@ import RecipeFinder from './pages/RecipeFinder';
 import WeatherApp from './pages/WeatherApp';
 import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from './firebaseConfig';
+import { auth, trackEvent } from './firebaseConfig';
+import { useUserData } from './hooks/useUserData';
 import Profile from './pages/Profile';
 import Calculator from './pages/Calculator';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import Donate from './pages/Donate';
 import Docs from './pages/Docs';
+import Shortcuts from './components/Shortcuts';
 
 
 
 
 export const ThemeContext = createContext();
 
+// Logs a page_view to Analytics on every route change. Must live inside the
+// router so it can read the current location.
+function RouteAnalytics() {
+  const location = useLocation();
+  useEffect(() => {
+    trackEvent('page_view', { page_path: location.pathname });
+  }, [location.pathname]);
+  return null;
+}
+
 function App() {
 
-  const [theme, setTheme] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [todos, setTodos] = useState([]);
 
-  // Auth state is the single source of truth: when it resolves, load the
-  // user's saved theme + todos from Firestore.
+  // Auth state is the single source of truth for who's signed in.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoggedIn(!!currentUser);
-      if (currentUser) {
-        try {
-          const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (typeof data.theme === "boolean") setTheme(data.theme);
-            setTodos(Array.isArray(data.todos) ? data.todos : []);
-          }
-        } catch (error) {
-          console.error("Failed to load user data:", error);
-        }
-      } else {
-        setTodos([]);
-      }
     });
     return () => unsubscribe();
   }, []);
 
-  // Persist the theme whenever it changes (only while signed in).
-  useEffect(() => {
-    if (auth.currentUser) {
-      updateDoc(doc(db, "users", auth.currentUser.uid), { theme }).catch(() => {});
-    }
-  }, [theme]);
+  // All per-user state (profile/theme/todos/desktop) is loaded and persisted
+  // through one shared Realtime Database listener + debounced writer.
+  const { theme, setTheme, todos, setTodos, desktop, setDesktop, profile } = useUserData(user);
+
+  // Memoize the store so consumers only re-render when a value actually
+  // changes, not on every App render.
+  const store = useMemo(
+    () => ({ theme, setTheme, isLoggedIn, setIsLoggedIn, user, todos, setTodos, desktop, setDesktop, profile }),
+    [theme, setTheme, isLoggedIn, user, todos, setTodos, desktop, setDesktop, profile]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isLoggedIn, setIsLoggedIn, user, todos, setTodos }}>
+    <ThemeContext.Provider value={store}>
       <BrowserRouter>
+        <RouteAnalytics />
+        <Shortcuts />
         <div className={`app ${theme ? "dark" : "light"}`}>
         <Link className={`header_button donate_link`} style={{background: theme ? "#ffffff": "#171717", color: theme ? "#171717" : "#ffffff",border: 'none'}} to='/donate'>🙌 Donate</Link>
           <Header />
@@ -92,7 +92,6 @@ function App() {
             <Route path='/' element={<Desktop />} />
             <Route path='/home' element={<Home />} />
             <Route path='/apps' element={<Apps />} />
-            <Route path='/blogs' element={<Blog />} />
             <Route path='/profile' element={<Profile />} />
             {/* App Routes */}
             <Route path="/currency-converter" element={<CurrencyConverter />} />

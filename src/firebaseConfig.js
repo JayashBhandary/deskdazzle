@@ -1,12 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from "firebase/firestore";
-//import { getAnalytics } from "firebase/analytics";
-
+import { getAuth } from 'firebase/auth';
+import { getDatabase } from "firebase/database";
+import { getAnalytics, isSupported, logEvent } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBx3URRwSSTKZivSXs24AoTat8etj6qa-0",
   authDomain: "deskdazzle.firebaseapp.com",
+  databaseURL: "https://deskdazzle-default-rtdb.firebaseio.com",
   projectId: "deskdazzle",
   storageBucket: "deskdazzle.appspot.com",
   messagingSenderId: "428181540252",
@@ -15,7 +15,25 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-//const analytics = getAnalytics(app);
 
-export const auth = getAuth(app)
-export const db = getFirestore(app);
+export const auth = getAuth(app);
+// Realtime Database is the single per-user store: a thin profile mirror plus all
+// fast-changing state (theme, todos, desktop layout). Everything under
+// users/{uid}; live-synced through one shared listener (see useUserData).
+export const rtdb = getDatabase(app);
+
+// Analytics is only supported in browser contexts served over http(s); guard
+// with isSupported() so it never throws in unsupported envs (SSR, some PWAs).
+let analytics = null;
+isSupported()
+  .then((ok) => { if (ok) analytics = getAnalytics(app); })
+  .catch(() => {});
+
+// Safe event logger — no-ops until analytics has initialized.
+export function trackEvent(name, params) {
+  try {
+    if (analytics) logEvent(analytics, name, params);
+  } catch {
+    // ignore analytics failures
+  }
+}

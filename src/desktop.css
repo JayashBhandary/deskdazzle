@@ -1,6 +1,6 @@
 /* ===== Desktop workspace =====
    Styled to match the existing DeskDazzle look: monochrome black/white theme,
-   grey borders, and the app's single accent colour (#F87171). */
+   grey borders, and the app's single accent colour (#ffffff). */
 .desktop {
     position: relative;
     width: 100%;
@@ -106,7 +106,7 @@
 }
 
 .dwin__btn:hover { opacity: 1; background: rgba(128, 128, 128, 0.25); }
-.dwin__btn--close:hover { background: #F87171; color: #fff; opacity: 1; }
+.dwin__btn--close:hover { background: #ffffff; color: #171717; opacity: 1; }
 
 .dwin__body {
     flex: 1;
@@ -178,7 +178,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #F87171;
+    background: #ffffff;
 }
 
 /* ===== Shared widget styles ===== */
@@ -257,7 +257,7 @@
 .widget__note p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .widget__x { cursor: pointer; opacity: 0.55; font-size: 18px; line-height: 1; }
-.widget__x:hover { opacity: 1; color: #F87171; }
+.widget__x:hover { opacity: 1; color: #ffffff; }
 
 .widget__empty { opacity: 0.6; text-align: center; margin: auto; font-size: 14px; }
 
@@ -280,8 +280,8 @@
     transition: 0.12s;
 }
 .calcw__key:hover { background: rgba(128, 128, 128, 0.32); }
-.calcw__key--op { color: #F87171; font-weight: 700; }
-.calcw__key--eq { background: #F87171; color: #fff; }
+.calcw__key--op { color: #ffffff; font-weight: 700; }
+.calcw__key--eq { background: #ffffff; color: #171717; }
 
 /* Calendar widget */
 .calw { gap: 8px; }
@@ -291,7 +291,7 @@
 .calw__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
 .calw__dow { text-align: center; font-size: 11px; opacity: 0.5; font-weight: 700; }
 .calw__cell { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 6px; }
-.calw__cell--today { background: #F87171; color: #fff; font-weight: 700; }
+.calw__cell--today { background: #ffffff; color: #171717; font-weight: 700; }
 
 /* Budget widget */
 .budgetw__balance {

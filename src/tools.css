@@ -122,7 +122,7 @@
 }
 
 .tool__markdown blockquote {
-    border-left: 3px solid #F87171;
+    border-left: 3px solid #ffffff;
     margin: 8px 0;
     padding-left: 14px;
     opacity: 0.85;
@@ -231,13 +231,13 @@
 }
 
 .calc__key--op {
-    color: #F87171;
+    color: #ffffff;
     font-weight: 800;
 }
 
 .calc__key--eq {
-    background-color: #F87171;
-    color: #fff;
+    background-color: #ffffff;
+    color: #171717;
     font-weight: 800;
 }
 
@@ -285,8 +285,8 @@
 }
 
 .calendar__cell--today {
-    background-color: #F87171;
-    color: #fff;
+    background-color: #ffffff;
+    color: #171717;
     font-weight: 800;
 }
 

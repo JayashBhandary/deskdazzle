@@ -1,9 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { ThemeContext } from '../App';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
 
-// Shares the same todos as the full ToDoList (Firestore-backed via context).
+// Shares the same todos as the full ToDoList. Persistence is handled centrally
+// by setTodos (useUserData → Realtime Database) — no per-widget write here.
 function TodoWidget() {
   const { theme, todos, setTodos } = useContext(ThemeContext);
   const [text, setText] = useState('');
@@ -21,12 +20,6 @@ function TodoWidget() {
   const remove = (index) => {
     setTodos(todos.filter((_, i) => i !== index));
   };
-
-  useEffect(() => {
-    if (auth.currentUser) {
-      updateDoc(doc(db, 'users', auth.currentUser.uid), { todos }).catch(() => {});
-    }
-  }, [todos]);
 
   return (
     <div className='widget'>

@@ -8,8 +8,10 @@
 }
 
 .page__content {
-    width: 1400px;
+    width: 100%;
+    max-width: 1400px;
     margin: 20px;
+    box-sizing: border-box;
 }
 
 .page__content label {
@@ -51,7 +53,7 @@
 .page h1 {
     text-align: center;
     -webkit-text-stroke: 1px;
-    -webkit-text-stroke-color: #F87171;
+    -webkit-text-stroke-color: #ffffff;
     color: transparent;
     font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
     font-weight: 900;
