@@ -1,21 +1,15 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ToolPage from '../components/ToolPage';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { DataPanel } from './DataConverter';
-import { UnitsPanel } from './UnitConverter';
-import { CurrencyPanel } from './CurrencyConverter';
+import ConvertersApp, { CONVERTER_TAB_KEYS } from '../apps/converters/ConvertersApp';
 
-const TABS = ['data', 'units', 'currency'];
-
+// Thin route host: the Converters app itself lives in src/apps/converters.
+// Here we just wrap it in the page shell and keep the active tab in the URL
+// (?tab=…), so deep links like /converters?tab=currency work.
 function Converters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const param = searchParams.get('tab');
-  const tab = TABS.includes(param) ? param : 'data';
-
-  const onValueChange = (value) => {
-    setSearchParams({ tab: value }, { replace: true });
-  };
+  const tab = CONVERTER_TAB_KEYS.includes(param) ? param : 'data';
 
   return (
     <ToolPage
@@ -24,22 +18,10 @@ function Converters() {
       title="Converters"
       description="Convert data formats, units and currencies — data & units run on-device."
     >
-      <Tabs value={tab} onValueChange={onValueChange}>
-        <TabsList>
-          <TabsTrigger value="data">Data</TabsTrigger>
-          <TabsTrigger value="units">Units</TabsTrigger>
-          <TabsTrigger value="currency">Currency</TabsTrigger>
-        </TabsList>
-        <TabsContent value="data" className="mt-4">
-          <DataPanel />
-        </TabsContent>
-        <TabsContent value="units" className="mt-4">
-          <UnitsPanel />
-        </TabsContent>
-        <TabsContent value="currency" className="mt-4">
-          <CurrencyPanel />
-        </TabsContent>
-      </Tabs>
+      <ConvertersApp
+        tab={tab}
+        onTabChange={(value) => setSearchParams({ tab: value }, { replace: true })}
+      />
     </ToolPage>
   );
 }

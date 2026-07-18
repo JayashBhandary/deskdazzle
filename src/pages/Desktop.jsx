@@ -5,27 +5,31 @@ import DesktopWindow from '../components/DesktopWindow';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import ClockWidget from '../widgets/ClockWidget';
-import TodoWidget from '../widgets/TodoWidget';
-import NotesWidget from '../widgets/NotesWidget';
-import CalculatorWidget from '../widgets/CalculatorWidget';
-import WeatherWidget from '../widgets/WeatherWidget';
-import BudgetWidget from '../widgets/BudgetWidget';
-import CalendarWidget from '../widgets/CalendarWidget';
-import ColorWidget from '../widgets/ColorWidget';
-import MediaWidget from '../widgets/MediaWidget';
+// Every desktop widget is just its app component rendered inside a small,
+// resizable window. Apps live in src/apps/<name>/ and adapt to their container
+// via container queries — the same component powers the full page and the
+// widget, so there's no separate widget code to maintain.
+import ClockApp from '../apps/clock/ClockApp';
+import TodoApp from '../apps/todo/TodoApp';
+import NotesApp from '../apps/notes/NotesApp';
+import CalculatorApp from '../apps/calculator/CalculatorApp';
+import WeatherApp from '../apps/weather/WeatherApp';
+import BudgetApp from '../apps/budget/BudgetApp';
+import CalendarApp from '../apps/calendar/CalendarApp';
+import ColorPicker from '../apps/design/parts/ColorPicker';
+import MediaApp from '../apps/media/MediaApp';
 
 // Registry of every widget that can live on the desktop.
 const WIDGETS = {
-  clock: { title: 'Clock', icon: '🕐', component: ClockWidget, w: 300, h: 360 },
-  todo: { title: 'To-Do', icon: '✅', component: TodoWidget, w: 300, h: 360 },
-  notes: { title: 'Notes', icon: '📝', component: NotesWidget, w: 300, h: 360 },
-  calculator: { title: 'Calculator', icon: '🧮', component: CalculatorWidget, w: 280, h: 380 },
-  weather: { title: 'Weather', icon: '🌦️', component: WeatherWidget, w: 280, h: 300 },
-  budget: { title: 'Budget', icon: '💳', component: BudgetWidget, w: 330, h: 420 },
-  calendar: { title: 'Calendar', icon: '📅', component: CalendarWidget, w: 320, h: 320 },
-  color: { title: 'Color Picker', icon: '🎨', component: ColorWidget, w: 300, h: 360 },
-  media: { title: 'Media', icon: '🎧', component: MediaWidget, w: 300, h: 180 },
+  clock: { title: 'Clock', icon: '🕐', component: ClockApp, w: 300, h: 380 },
+  todo: { title: 'To-Do', icon: '✅', component: TodoApp, w: 320, h: 380 },
+  notes: { title: 'Notes', icon: '📝', component: NotesApp, w: 320, h: 380 },
+  calculator: { title: 'Calculator', icon: '🧮', component: CalculatorApp, w: 280, h: 380 },
+  weather: { title: 'Weather', icon: '🌦️', component: WeatherApp, w: 300, h: 320 },
+  budget: { title: 'Budget', icon: '💳', component: BudgetApp, w: 300, h: 380 },
+  calendar: { title: 'Calendar', icon: '📅', component: CalendarApp, w: 300, h: 340 },
+  color: { title: 'Color Picker', icon: '🎨', component: ColorPicker, w: 300, h: 400 },
+  media: { title: 'Media', icon: '🎧', component: MediaApp, w: 300, h: 140 },
 };
 
 const ORDER = ['clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];

@@ -1,20 +1,15 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ToolPage from '../components/ToolPage';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PasswordPanel } from './PasswordGenerator';
-import { EncryptPanel } from './TextEncryptor';
+import VaultApp, { VAULT_TAB_KEYS } from '../apps/vault/VaultApp';
 
-const TABS = ['passwords', 'encrypt'];
-
+// Thin route host: the Vault app itself lives in src/apps/vault. Here we just
+// wrap it in the page shell and keep the active tab in the URL (?tab=…), so
+// deep links like /vault?tab=encrypt work.
 function Vault() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get('tab');
-  const tab = TABS.includes(requested) ? requested : 'passwords';
-
-  const handleTabChange = (value) => {
-    setSearchParams({ tab: value }, { replace: true });
-  };
+  const tab = VAULT_TAB_KEYS.includes(requested) ? requested : 'passwords';
 
   return (
     <ToolPage
@@ -23,20 +18,7 @@ function Vault() {
       title="Vault"
       description="Generate strong passwords and encrypt text — 100% on-device."
     >
-      <Tabs value={tab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="passwords">Passwords</TabsTrigger>
-          <TabsTrigger value="encrypt">Encrypt</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="passwords" className="mt-4">
-          <PasswordPanel />
-        </TabsContent>
-
-        <TabsContent value="encrypt" className="mt-4">
-          <EncryptPanel />
-        </TabsContent>
-      </Tabs>
+      <VaultApp tab={tab} onTabChange={(value) => setSearchParams({ tab: value }, { replace: true })} />
     </ToolPage>
   );
 }
