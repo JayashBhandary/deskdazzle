@@ -1,5 +1,7 @@
-import React, { useContext, useState } from 'react'
-import { ThemeContext } from '../App';
+import React, { useState } from 'react'
+import { Loader2, Search, WifiOff } from 'lucide-react'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const CODES = {
   0: ['Clear', '☀️'], 1: ['Mainly clear', '🌤️'], 2: ['Partly cloudy', '⛅'], 3: ['Overcast', '☁️'],
@@ -12,13 +14,17 @@ const CODES = {
 };
 
 function WeatherWidget() {
-  const { theme } = useContext(ThemeContext);
   const [city, setCity] = useState('');
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('idle');
 
   const search = async () => {
     if (!city.trim()) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setData(null);
+      setStatus('offline');
+      return;
+    }
     setStatus('loading');
     setData(null);
     try {
@@ -29,35 +35,49 @@ function WeatherWidget() {
       setData({ name, ...w.current });
       setStatus('idle');
     } catch {
-      setStatus('error');
+      setStatus(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error');
     }
   };
 
   const [label, emoji] = CODES[data?.weather_code] || ['', '🌡️'];
 
   return (
-    <div className='widget'>
-      <div className='widget__addrow'>
-        <input
-          className={`widget__input ${theme ? 'dark' : 'light'}`}
+    <div className="flex h-full flex-col gap-2.5">
+      <div className="flex gap-1.5">
+        <Input
+          className="h-8 min-w-0 flex-1"
           value={city}
-          placeholder='City...'
+          placeholder="City..."
           onChange={(e) => setCity(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
         />
-        <button className='widget__addbtn' onClick={search}>🔍</button>
+        <Button size="icon" variant="secondary" className="size-8 shrink-0" onClick={search} aria-label="Search city">
+          <Search />
+        </Button>
       </div>
-      <div className='widget--center' style={{ flex: 1 }}>
-        {status === 'loading' && <p className='widget__empty'>Loading...</p>}
-        {status === 'error' && <p className='widget__empty'>City not found.</p>}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 text-center">
+        {status === 'loading' && (
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        )}
+        {status === 'error' && (
+          <p className="text-sm text-muted-foreground">City not found.</p>
+        )}
+        {status === 'offline' && (
+          <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
+            <WifiOff className="size-6" />
+            <p className="text-sm">You&apos;re offline.</p>
+          </div>
+        )}
         {data && status === 'idle' && (
           <>
-            <div style={{ fontSize: '46px' }}>{emoji}</div>
-            <div className='clock__time' style={{ fontSize: '36px' }}>{Math.round(data.temperature_2m)}°C</div>
-            <div className='clock__date'>{data.name} · {label}</div>
+            <div className="text-5xl leading-none">{emoji}</div>
+            <div className="font-mono text-3xl font-extrabold">{Math.round(data.temperature_2m)}°C</div>
+            <div className="text-sm text-muted-foreground">{data.name} · {label}</div>
           </>
         )}
-        {!data && status === 'idle' && <p className='widget__empty'>Search a city.</p>}
+        {!data && status === 'idle' && (
+          <p className="text-sm text-muted-foreground">Search a city.</p>
+        )}
       </div>
     </div>
   )

@@ -1,46 +1,66 @@
 import React, { useContext, useState } from 'react'
+import { Plus, X } from 'lucide-react'
 import { ThemeContext } from '../App';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 // Shares the same todos as the full ToDoList. Persistence is handled centrally
 // by setTodos (useUserData → Realtime Database) — no per-widget write here.
+// Todo objects may carry extra fields (due/priority/tags/recurrence), so
+// updates always spread the existing object instead of rebuilding it.
 function TodoWidget() {
-  const { theme, todos, setTodos } = useContext(ThemeContext);
+  const { todos, setTodos } = useContext(ThemeContext);
   const [text, setText] = useState('');
+  const list = todos || [];
 
   const add = () => {
     if (!text.trim()) return;
-    setTodos([...todos, { text, isDone: false }]);
+    setTodos([...list, { text: text.trim(), isDone: false, createdMs: Date.now() }]);
     setText('');
   };
 
   const toggle = (index) => {
-    setTodos(todos.map((t, i) => (i === index ? { ...t, isDone: !t.isDone } : t)));
+    setTodos(list.map((t, i) => (i === index ? { ...t, isDone: !t.isDone } : t)));
   };
 
   const remove = (index) => {
-    setTodos(todos.filter((_, i) => i !== index));
+    setTodos(list.filter((_, i) => i !== index));
   };
 
   return (
-    <div className='widget'>
-      <div className='widget__addrow'>
-        <input
-          className={`widget__input ${theme ? 'dark' : 'light'}`}
+    <div className="flex h-full flex-col gap-2.5">
+      <div className="flex gap-1.5">
+        <Input
+          className="h-8 min-w-0 flex-1"
           value={text}
-          placeholder='Add a task...'
+          placeholder="Add a task..."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()}
         />
-        <button className='widget__addbtn' onClick={add}>+</button>
+        <Button size="icon" className="size-8 shrink-0" onClick={add} aria-label="Add task">
+          <Plus />
+        </Button>
       </div>
-      <div className='widget__scroll'>
-        {todos.length === 0
-          ? <p className='widget__empty'>Nothing to do. 🎉</p>
-          : todos.map((todo, i) => (
-            <div key={i} className='widget__item'>
-              <input type='checkbox' checked={!!todo.isDone} onChange={() => toggle(i)} />
-              <span style={{ textDecoration: todo.isDone ? 'line-through' : 'none', opacity: todo.isDone ? 0.6 : 1, flex: 1 }}>{todo.text}</span>
-              <span className='widget__x' onClick={() => remove(i)}>×</span>
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+        {list.length === 0
+          ? <p className="m-auto text-center text-sm text-muted-foreground">Nothing to do. 🎉</p>
+          : list.map((todo, i) => (
+            <div key={i} className="flex items-center gap-2 py-0.5 text-sm">
+              <Checkbox checked={!!todo.isDone} onCheckedChange={() => toggle(i)} />
+              <span className={cn('min-w-0 flex-1 truncate', todo.isDone && 'text-muted-foreground line-through')}>
+                {todo.text}
+              </span>
+              <button
+                type="button"
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                title="Remove"
+                aria-label="Remove task"
+                onClick={() => remove(i)}
+              >
+                <X className="size-3.5" />
+              </button>
             </div>
           ))}
       </div>

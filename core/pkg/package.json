@@ -1,0 +1,17 @@
+{
+  "name": "pocketknife-core",
+  "type": "module",
+  "description": "PocketKnife core logic: tasks, scheduling, search, conversions. Targets wasm (web) and wasm32-wasip1 (headless).",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "pocketknife_core_bg.wasm",
+    "pocketknife_core.js",
+    "pocketknife_core.d.ts"
+  ],
+  "main": "pocketknife_core.js",
+  "types": "pocketknife_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

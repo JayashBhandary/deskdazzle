@@ -1,15 +1,27 @@
-import React, { useState, useContext, useRef } from 'react'
+import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { ThemeContext } from '../App';
+import { Copy, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
+import ToolPage from '../components/ToolPage';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-function GradientGenerator() {
-  const { theme } = useContext(ThemeContext);
+export function GradientPanel() {
   const [startColor, setStartColor] = useState('#ff0000');
   const [endColor, setEndColor] = useState('#0033ff');
   const [horizontal, setHorizontal] = useState("right");
   const [vertical, setVertical] = useState("top");
   const gradientRef = useRef(null);
 
+  const cssValue = `linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})`;
 
   const copyToClipboard = (text) => {
     navigator.permissions.query({ name: "clipboard-write" }).then((result) => {
@@ -17,10 +29,9 @@ function GradientGenerator() {
         navigator.clipboard.writeText(text).then(() => {
           // Alert the user that the action took place.
           // Nobody likes hidden stuff being done under the hood!
-          alert("Copied to clipboard");
+          toast.success('Copied to clipboard');
         });
       }
-
     });
   }
 
@@ -40,69 +51,118 @@ function GradientGenerator() {
       link.click();
     });
   };
-  
 
-  const gradientStyle = {
-    backgroundImage: `linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})`,
+  const share = async () => {
+    try {
+      const data = { text: cssValue };
+      await navigator.share(data);
+    } catch (error) {
+      toast.error(String(error));
+    }
   };
 
+  const gradientStyle = {
+    backgroundImage: cssValue,
+  };
 
   return (
-    <div className='page'>
-      <div className='page__content'>
-
-        <label>🌈 GradientGenerator</label>
-
-        <div className='content'>
-          <div style={gradientStyle} className="gradient-preview" ref={gradientRef} onClick={saveImage}>
-            <p style={{position: 'relative', top: '10px', left: '5px', color: 'rgba(255,255,255,0.5)',fontWeight: 'bold'}}>Desk Dazzle</p>
-            <p style={{position: 'relative', top: '20px', left: '5px', color: 'rgba(255,255,255,0.5)',fontWeight: 'bold'}}>{startColor}</p>
-            <p style={{position: 'relative', top: '30px', left: '5px', color: 'rgba(255,255,255,0.5)',fontWeight: 'bold'}}>{endColor}</p>
-            <p style={{position: 'relative', top: '40px', left: '5px', color: 'rgba(255,255,255,0.5)',fontWeight: 'bold', fontSize: '15px'}}>{`linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})`}</p>
-            </div>
-          <p>Click on the gradient to download the image.</p>
-          <div className='gradientcontrols'>
-            <div className='gradientoption'>
-              <div className='custom-select'>
-                <p htmlFor="start-color">Start Color: </p>
-                <input type="color" id="start-color" value={startColor} onChange={handleStartColorChange} />
-              </div>
-              <div className='custom-select'>
-                <p htmlFor="end-color">End Color: </p>
-                <input type="color" id="end-color" value={endColor} onChange={handleEndColorChange} />
-              </div>
-              <div className='custom-select'>
-                <p htmlFor="vertical">Vertical:</p>
-                <select style={{ backgroundColor: theme ? "white" : "#f5f5f5" }} value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                  <option>Vertical</option>
-                  <option value="top">Top</option>
-                  <option value="bottom">Bottom</option>
-                </select>
-              </div>
-              <div className='custom-select'>
-                <p htmlFor="horizontal">Horizontal: </p>
-                <select style={{ backgroundColor: theme ? "white" : "#f5f5f5" }} value={horizontal} onChange={(e) => setHorizontal(e.target.value)}>
-                  <option>Horizontal</option>
-                  <option value="left">Left</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }} onClick={() => copyToClipboard(`linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})`)}>
-              <p style={{ margin: '2px', padding: '15px', color: theme ? "#000000" : "#ffffff", backgroundColor: theme ? "#ffffff" : "#000000", borderRadius: '20px' }}>{`linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})`}</p>
-              <p style={{ color: theme ? "#ffffff" : "#000000", }} onClick={async () => {
-                try {
-                  const data = { text: `linear-gradient(to ${horizontal} ${vertical}, ${startColor}, ${endColor})` }
-                  await navigator.share(data);
-                } catch (error) {
-                  alert(error)
-                }
-              }}>👆Click to Copy</p>
+    <div className="space-y-6">
+        <div>
+          <div
+            style={gradientStyle}
+            ref={gradientRef}
+            onClick={saveImage}
+            className="relative h-64 w-full cursor-pointer overflow-hidden rounded-xl border"
+            title="Click to download the image"
+          >
+            <div className="absolute left-3 top-3 space-y-0.5 font-bold text-white/50">
+              <p>Desk Dazzle</p>
+              <p>{startColor}</p>
+              <p>{endColor}</p>
+              <p className="text-sm">{cssValue}</p>
             </div>
           </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Click on the gradient to download the image.
+          </p>
         </div>
-      </div>
+
+        <Card>
+          <CardContent className="space-y-6">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-color">Start Color</Label>
+                <input
+                  type="color"
+                  id="start-color"
+                  className="block h-9 w-14 cursor-pointer rounded-md border bg-transparent p-1"
+                  value={startColor}
+                  onChange={handleStartColorChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-color">End Color</Label>
+                <input
+                  type="color"
+                  id="end-color"
+                  className="block h-9 w-14 cursor-pointer rounded-md border bg-transparent p-1"
+                  value={endColor}
+                  onChange={handleEndColorChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vertical">Vertical</Label>
+                <Select value={vertical} onValueChange={setVertical}>
+                  <SelectTrigger id="vertical" className="w-32">
+                    <SelectValue placeholder="Vertical" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top">Top</SelectItem>
+                    <SelectItem value="bottom">Bottom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="horizontal">Horizontal</Label>
+                <Select value={horizontal} onValueChange={setHorizontal}>
+                  <SelectTrigger id="horizontal" className="w-32">
+                    <SelectValue placeholder="Horizontal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Left</SelectItem>
+                    <SelectItem value="right">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md border bg-muted/50 px-3 py-2 font-mono text-sm">
+                {cssValue}
+              </code>
+              <Button variant="outline" size="sm" onClick={() => copyToClipboard(cssValue)}>
+                <Copy /> Copy CSS
+              </Button>
+              <Button variant="outline" size="sm" onClick={share}>
+                <Share2 /> Share
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
     </div>
+  )
+}
+
+function GradientGenerator() {
+  return (
+    <ToolPage
+      wide
+      icon="🌈"
+      title="Gradient Generator"
+      description="Compose a two-color CSS gradient, copy the CSS or download it as an image."
+    >
+      <GradientPanel />
+    </ToolPage>
   )
 }
 

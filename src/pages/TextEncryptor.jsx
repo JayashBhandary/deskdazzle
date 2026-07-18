@@ -1,9 +1,16 @@
-import React, { useState, useContext } from 'react'
+import React, { useState } from 'react';
 import CryptoJS from 'crypto-js';
-import { ThemeContext } from '../App';
+import { Copy, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
+import ToolPage from '../components/ToolPage';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-function TextEncryptor() {
-  const { theme } = useContext(ThemeContext);
+export function EncryptPanel() {
   const [text, setText] = useState("");
   const [screen, setScreen] = useState("encrypt");
 
@@ -41,85 +48,90 @@ function TextEncryptor() {
     else decryptData();
   };
 
+  const output = screen === "encrypt" ? encrptedData : decrptedData;
+
+  const copyOutput = () => {
+    navigator.clipboard.writeText(output).then(() => {
+      toast.success('Copied to clipboard');
+    });
+  };
+
+  const shareOutput = async () => {
+    try {
+      const data = { text: output };
+      await navigator.share(data);
+    } catch (error) {
+      toast.error(String(error));
+    }
+  };
+
   return (
-    <div className='page'>
-      <div className='page__content'>
+    <>
+      <Tabs value={screen} onValueChange={switchScreen} className="mb-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="encrypt">Encrypt</TabsTrigger>
+          <TabsTrigger value="decrypt">Decrypt</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-        <label>🔒 TextEncryptor</label>
-
-        <div className='content'>
-          <div className="container">
-            <div>
-              <button
-                className="header_button btn-left"
-                style={{
-                  fontSize: '24px',
-                  padding: '16px',
-                  
-                  backgroundColor: screen === "encrypt" ? "#f5f5f5" : "#131313",
-                  color: screen === "encrypt" ? "#131313" : "#f5f5f5"
-                }}
-                onClick={() => {
-                  switchScreen("encrypt");
-                }}
-              >
-                Encrypt
-              </button>
-
-              <button
-                className="header_button btn-right"
-                style={{
-                  fontSize: '24px',
-                  padding: '16px',
-                  
-                  backgroundColor: screen === "decrypt" ? "#f5f5f5" : "#131313",
-                  color: screen === "encrypt" ? "#f5f5f5" : "#131313"
-                }}
-                onClick={() => {
-                  switchScreen("decrypt");
-                }}
-              >
-                Decrypt
-              </button>
-            </div>
-
-            <div className="card">
-              <input
-              className={theme ? "dark": "light"}
-                value={text}
-                onChange={({ target }) => {
-                  setText(target.value);
-                }}
-                name="text"
-                type="text"
-                placeholder={
-                  screen === "encrypt" ? "Enter Text" : "Enter Encrypted Data"
-                }
-              />
-
-              <button style={{color: theme ? "white": "black"}} className="submit-btn" onClick={handleClick}>
-                {screen === "encrypt" ? "Encrypt" : "Decrypt"}
-              </button>
-            </div>
-
-            {encrptedData || decrptedData ? (
-              <div className="text_content">
-                <h2>{screen === "encrypt" ? "Encrypted" : "Decrypted"} Data: </h2>
-                <textarea style={{backgroundColor: theme ? "#171717" : "#ffffff", color: theme ? "#c7c7c7" : "#171717"}} rows="20" cols="40">{screen === "encrypt" ? encrptedData : decrptedData}</textarea>
-              <p onClick={async()=>{
-                try {
-                  const data = {text: encrptedData}
-                  await navigator.share(data);
-                } catch (error) {
-                  alert(error)
-                }
-              }}>Share</p>
-              </div>
-            ) : null}
+      <Card>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={text}
+              onChange={({ target }) => {
+                setText(target.value);
+              }}
+              name="text"
+              type="text"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleClick(); }}
+              placeholder={
+                screen === "encrypt" ? "Enter Text" : "Enter Encrypted Data"
+              }
+              aria-label={screen === "encrypt" ? "Text to encrypt" : "Encrypted data to decrypt"}
+            />
+            <Button onClick={handleClick} className="shrink-0">
+              {screen === "encrypt" ? "Encrypt" : "Decrypt"}
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+
+          {encrptedData || decrptedData ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>{screen === "encrypt" ? "Encrypted" : "Decrypted"} Data</Label>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={copyOutput}>
+                    <Copy /> Copy
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={shareOutput}>
+                    <Share2 /> Share
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                readOnly
+                rows={8}
+                value={output}
+                className="resize-none font-mono text-sm break-all"
+                aria-label="Result"
+              />
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+function TextEncryptor() {
+  return (
+    <ToolPage
+      icon="🔒"
+      title="Text Encryptor"
+      description="AES-encrypt and decrypt text right in your browser with crypto-js."
+    >
+      <EncryptPanel />
+    </ToolPage>
   )
 }
 

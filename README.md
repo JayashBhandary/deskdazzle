@@ -1,6 +1,6 @@
-# Desk Dazzle - All-in-One Tool App
+# Desk Dazzle — Your Swiss-Army-Knife Web App
 
-### Version: 0.1.0
+### Version: 0.2.0
 
 #### Author: Jayash Bhandary
 
@@ -8,114 +8,139 @@
 
 ## Description
 
-**Desk Dazzle** is a comprehensive, all-in-one web application designed to enhance productivity by combining various essential tools. Built using the latest web technologies, Desk Dazzle offers a seamless user experience with a clean interface, offline support, and real-time functionality. From QR code generation and image resizing to text editing and cloud integration, Desk Dazzle simplifies your workflow in one place.
+**Desk Dazzle** is an offline-first, all-in-one "swiss army knife" web app. It
+opens instantly, installs as a PWA, and keeps working with **no network**: the
+heavy lifting (markdown rendering, data conversion, full-text search,
+natural-language task parsing) runs in a **Rust → WebAssembly core** on your
+device, wrapped in a clean **shadcn/ui + Tailwind CSS v4** interface. Sign in
+with Firebase (when online) to sync your to-dos, theme and desktop layout
+across devices — everything else never leaves your machine.
 
 ---
 
 ## Features
 
-- **Progressive Web App (PWA)**: Install Desk Dazzle on your desktop or mobile device and use it as a standalone app, thanks to PWA support.
-- **GraphQL API Integration** with `@apollo/client` and `graphql` for real-time data fetching.
-- **Firebase Integration** for secure cloud storage and hosting.
-- **QR Code Generation** via `qrcode.react`.
-- **Image Resizing** with `react-image-file-resizer`.
-- **Rich Text Editing** using `react-quill`.
-- **Real-time Updates** with `subscriptions-transport-ws`.
-- **Animation Support** powered by `GSAP` and `@gsap/react`.
-- **Offline Mode** and caching strategies using `Workbox`.
-- **Clock Widget** via `react-clock`.
-- **Color Palette Picker** integrated through `react-color-palette`.
-- **REST API Support** using `axios` for external service interaction.
+- **Offline-first PWA** — the app shell *and* the WASM core are precached by
+  the service worker (Workbox via `vite-plugin-pwa`). After the first visit,
+  every on-device tool works with zero connectivity.
+- **Rust → WebAssembly core** (~540 KB, loaded eagerly on first page load):
+  - **Data Converter** — Markdown→HTML, CSV→JSON, JSON↔YAML, Base64 and
+    URL encode/decode, run in a Web Worker so big inputs never block the UI.
+  - **Markdown Previewer** — rendered by the Rust core (pulldown-cmark),
+    sanitized with DOMPurify.
+  - **Full-text search** — the ⌘K command palette searches your notes and
+    to-dos with the Rust search engine, instantly, offline.
+  - **Tasks** — a full task manager: projects, subtasks, a drag-and-drop
+    kanban board, natural-language quick-add
+    (`pay rent friday !high #finance every month`), automatic
+    Overdue/Today/Upcoming/Someday buckets, and recurring tasks whose next
+    occurrence is computed in Rust.
+  - **Image Resizer / Optimizer / Batch Converter** — transcode + resize
+    PNG/JPEG/WebP via OffscreenCanvas in the worker (Canvas fallback), single
+    files or whole batches zipped for download. 100% on-device.
+- **Study & planning suite** — markdown **Notes** with `[[wiki links]]`,
+  backlinks and instant search; **Flashcards** with SM-2 spaced repetition;
+  a **Pomodoro** focus timer with daily stats; and a **Roadmap Planner** with
+  startup / research-paper / exam-prep templates.
+- **Cross-tab sync & backup** — open tabs stay in sync over BroadcastChannel,
+  a now-playing **Media widget** mirrors audio (e.g. Text-to-Speech) across
+  tabs with remote play/pause, and the whole workspace exports/imports as a
+  single JSON file from the Profile page.
+- **shadcn/ui + Tailwind CSS v4** interface — consistent, accessible,
+  keyboard-first, with dark/light themes.
+- **Desktop workspace** — draggable widget windows (clock, to-dos, notes,
+  calculator, weather) whose layout is saved to your account.
+- **Firebase (online-optional)** — sign up / log in to sync to-dos, profile,
+  theme and desktop layout via the Realtime Database. When offline, the app
+  keeps working locally and network-only tools (Weather, Translation, Currency
+  rates, URL Shortener, Recipe Finder) show a friendly offline state.
+- Plus the classic toolbox: QR codes, password generator, text encryptor,
+  color picker, gradient generator, unit converter, calculator, calendar,
+  budget tracker, text-to-speech, notes and more.
 
 ---
 
-## Web Manifest
+## Tech stack
 
-Desk Dazzle supports Progressive Web App (PWA) features:
+| Layer | Choice |
+|------|--------|
+| Build | Vite + React 19 (JSX app code, TS libraries) |
+| UI | shadcn/ui + Tailwind CSS v4 + lucide-react + sonner |
+| Core logic | Rust → WebAssembly (`wasm-bindgen` + `wasm-pack`), prebuilt into `core/pkg` |
+| Offline | `vite-plugin-pwa` (Workbox) — full precache incl. the `.wasm` |
+| Cloud (optional) | Firebase Auth + Realtime Database + Hosting |
 
-- **App Name**: Desk Dazzle
-- **Short Name**: Desk Dazzle
-- **Start URL**: `/apps`
-- **Display Mode**: Standalone (desktop and mobile app-like experience)
-- **Theme Color**: Black (`#000000`)
-- **Background Color**: White (`#ffffff`)
-- **App Icons**: 
-  - `favicon.ico` (multiple sizes: 16x16, 24x24, 32x32, 64x64)
-  - `logo192.png` (192x192 for larger displays)
+### What runs where
 
-Additionally, Desk Dazzle provides quick access to documentation through app shortcuts:
-- **Documentation Shortcut**: `/docs`
+**Rust core (`/core`)** — task model + natural-language quick-add parser,
+smart-view bucketing, recurrence date math, cross-document full-text search,
+and the text/data conversions. Prebuilt WASM is committed at `core/pkg`, so
+`npm run build` needs **no Rust toolchain**.
+
+**JS/React** — rendering, routing, Firebase sync, Canvas image work, and
+browser APIs. Conversions and image processing run in a Web Worker.
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-Ensure you have the following installed:
+- **Node.js** ≥ 20 and npm
+- *(Optional, only to rebuild the WASM core)* Rust toolchain + `wasm-pack`:
 
-- **Node.js** (v14 or later)
-- **npm** (v6 or later)
+  ```bash
+  rustup target add wasm32-unknown-unknown
+  cargo install wasm-pack
+  ```
 
-### Installation
+### Install & run
 
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/JayashBhandary/deskdazzle.git
-Navigate to the project directory:
-
-bash
-Copy code
+```bash
+git clone https://github.com/JayashBhandary/deskdazzle.git
 cd deskdazzle
-Install the dependencies:
-
-bash
-Copy code
 npm install
-Running the App
-To start the app in development mode:
+npm run dev        # dev server at http://localhost:3000
+```
 
-bash
-Copy code
-npm start
-This will run the app locally at http://localhost:3000.
+### Build & preview (PWA active here)
 
-Building for Production
-To create a production build:
+```bash
+npm run build      # bundles to dist/ (uses the committed core/pkg wasm)
+npm run preview    # serve the production build — install it, then go offline
+```
 
-bash
-Copy code
-npm run build
-The build will be placed in the build/ folder.
+### Rebuild the Rust core (optional)
 
-Deploying
-Desk Dazzle can be deployed using Firebase:
+```bash
+npm run wasm       # wasm-pack build core --target web → core/pkg
+```
 
-bash
-Copy code
-npm run deploy
-Ensure that Firebase CLI is installed and configured.
+### Deploy
 
-Available Scripts
-In the project directory, you can run the following:
+```bash
+npm run deploy     # npm run build && firebase deploy
+```
 
-npm start: Starts the development server.
-npm run build: Bundles the app for production.
-npm run test: Runs the test suite.
-npm run eject: Ejects the app from Create React App configurations.
-Technologies Used
-React.js: Frontend library for building responsive user interfaces.
-GraphQL: Data query language and runtime for fetching data efficiently.
-Firebase: Backend-as-a-Service for secure storage and hosting.
-GSAP: Animation library for highly performant web animations.
-Workbox: Tools for enabling offline caching and service workers.
-PWA Support: Progressive Web App features for installation on devices.
-Contributing
-Contributions are welcome! If you'd like to suggest improvements or report issues, please open an issue or submit a pull request.
+---
 
-License
-This project is licensed under the MIT License. See the LICENSE file for more details.
+## Keyboard shortcuts
 
-Repository
-Desk Dazzle GitHub Repository
+`⌘K` / `Ctrl-K` command palette (tools **and** your content) · `T` theme ·
+`?` shortcut help · `G` then `H`/`A`/`D` to jump to Workspace/Apps/Docs.
+
+## Offline & data
+
+After the first load the service worker precaches everything, including the
+WASM core — tasks, notes, converters, markdown, search and image tools all
+work with the network off. Notes live in local storage; to-dos, profile,
+theme and desktop layout sync through Firebase **when you're signed in and
+online**, and fall back to local state otherwise.
+
+## Contributing
+
+Contributions are welcome! Open an issue or submit a pull request.
+
+## License
+
+MIT — see the LICENSE file.

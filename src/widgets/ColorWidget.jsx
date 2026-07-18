@@ -1,27 +1,34 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { ColorPicker, useColor } from 'react-color-palette';
 import 'react-color-palette/css';
+import { toast } from 'sonner';
 
 function ColorWidget() {
   const [color, setColor] = useColor('#6d28d9');
-  const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(color.hex);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+      toast.success(`Copied ${color.hex.toUpperCase()}`);
     } catch {
-      // ignore
+      // clipboard unavailable
     }
   };
 
   return (
-    <div className='widget'>
-      <div className='colorw__swatch' style={{ backgroundColor: color.hex }} onClick={copy}>
-        {copied ? '✅ Copied' : color.hex.toUpperCase()}
+    <div className="flex h-full flex-col gap-2">
+      <button
+        type="button"
+        onClick={copy}
+        className="flex h-14 w-full items-center justify-center rounded-lg border font-mono text-sm font-semibold shadow-inner transition-transform hover:scale-[1.01]"
+        style={{ backgroundColor: color.hex, color: color.rgb.r * 0.299 + color.rgb.g * 0.587 + color.rgb.b * 0.114 > 150 ? '#000' : '#fff' }}
+        title="Click to copy hex"
+      >
+        {color.hex.toUpperCase()}
+      </button>
+      <div className="overflow-hidden rounded-lg">
+        <ColorPicker color={color} onChange={setColor} hideInput={['rgb', 'hsv']} height={110} />
       </div>
-      <ColorPicker color={color} onChange={setColor} hideInput={['rgb', 'hsv']} height={120} />
     </div>
   )
 }

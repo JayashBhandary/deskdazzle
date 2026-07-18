@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom';
 import { ThemeContext } from '../App';
 import DesktopWindow from '../components/DesktopWindow';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 import ClockWidget from '../widgets/ClockWidget';
 import TodoWidget from '../widgets/TodoWidget';
@@ -11,10 +13,11 @@ import WeatherWidget from '../widgets/WeatherWidget';
 import BudgetWidget from '../widgets/BudgetWidget';
 import CalendarWidget from '../widgets/CalendarWidget';
 import ColorWidget from '../widgets/ColorWidget';
+import MediaWidget from '../widgets/MediaWidget';
 
 // Registry of every widget that can live on the desktop.
 const WIDGETS = {
-  clock: { title: 'Clock', icon: '🕐', component: ClockWidget, w: 280, h: 200 },
+  clock: { title: 'Clock', icon: '🕐', component: ClockWidget, w: 300, h: 360 },
   todo: { title: 'To-Do', icon: '✅', component: TodoWidget, w: 300, h: 360 },
   notes: { title: 'Notes', icon: '📝', component: NotesWidget, w: 300, h: 360 },
   calculator: { title: 'Calculator', icon: '🧮', component: CalculatorWidget, w: 280, h: 380 },
@@ -22,25 +25,25 @@ const WIDGETS = {
   budget: { title: 'Budget', icon: '💳', component: BudgetWidget, w: 330, h: 420 },
   calendar: { title: 'Calendar', icon: '📅', component: CalendarWidget, w: 320, h: 320 },
   color: { title: 'Color Picker', icon: '🎨', component: ColorWidget, w: 300, h: 360 },
+  media: { title: 'Media', icon: '🎧', component: MediaWidget, w: 300, h: 180 },
 };
 
-const ORDER = ['clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color'];
+const ORDER = ['clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];
 
-// First-visit layout.
-const DEFAULT_LAYOUT = [
-  { id: 'clock', type: 'clock', x: 40, y: 30, width: 280, height: 200, z: 1, minimized: false, maximized: false },
-  { id: 'todo', type: 'todo', x: 350, y: 30, width: 300, height: 360, z: 2, minimized: false, maximized: false },
-  { id: 'weather', type: 'weather', x: 680, y: 30, width: 280, height: 300, z: 3, minimized: false, maximized: false },
-];
+// The workspace starts empty — the user opens whatever widgets they want from
+// the dock. Closing them all returns to this clean state (and stays there).
+const DEFAULT_LAYOUT = [];
 
 function Desktop() {
-  const { theme, isLoggedIn, desktop, setDesktop } = useContext(ThemeContext);
+  const { isLoggedIn, desktop, setDesktop } = useContext(ThemeContext);
   // Desktop layout is loaded/persisted centrally (useUserData → Realtime DB).
-  // Fall back to the first-visit layout until a saved one exists.
-  const windows = (Array.isArray(desktop) && desktop.length) ? desktop : DEFAULT_LAYOUT;
+  // `desktop` is null until loaded, then an array (possibly empty). An empty
+  // array is a real state — the user closed everything — so we must NOT fall
+  // back to defaults for it, or closed widgets would respawn.
+  const windows = Array.isArray(desktop) ? desktop : DEFAULT_LAYOUT;
   const setWindows = useCallback((updater) => {
     setDesktop((prev) => {
-      const base = (Array.isArray(prev) && prev.length) ? prev : DEFAULT_LAYOUT;
+      const base = Array.isArray(prev) ? prev : DEFAULT_LAYOUT;
       return typeof updater === 'function' ? updater(base) : updater;
     });
   }, [setDesktop]);
@@ -92,7 +95,7 @@ function Desktop() {
     return prev.map((w) => (w.id === id ? { ...w, minimized: false, z: top } : w));
   });
 
-  // Number keys 1–8 open (or restore) the matching widget. Ignored while the
+  // Number keys 1–9 open (or restore) the matching widget. Ignored while the
   // user is typing into a widget input.
   useEffect(() => {
     const onKey = (e) => {
@@ -114,13 +117,17 @@ function Desktop() {
   const visibleCount = windows.filter((w) => !w.minimized).length;
 
   return (
-    <div className={`desktop ${theme ? 'dark' : 'light'}`}>
-      <div className='desktop__surface'>
+    <div className="relative min-h-screen w-full bg-background pb-[120px] pt-[84px] text-foreground">
+      <div className="relative h-[calc(100vh-204px)] min-h-[440px] w-full">
         {visibleCount === 0 && (
-          <div className='desktop__hint'>
-            <h2>🖥️ Your workspace</h2>
-            <p>Open widgets from the dock below. Drag the title bars to move them, drag edges to resize. Your layout is saved{isLoggedIn ? ' to your account' : ' on this device'}.</p>
-            <Link className={`header_button ${theme ? 'dark' : 'light'}`} to='/apps'>Browse all tools →</Link>
+          <div className="absolute left-1/2 top-1/2 flex w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3.5 text-center">
+            <h2 className="text-3xl font-bold">🖥️ Your workspace</h2>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              Open widgets from the dock below. Drag the title bars to move them, drag edges to resize. Your layout is saved{isLoggedIn ? ' to your account' : ' on this device'}.
+            </p>
+            <Button asChild variant="outline">
+              <Link to="/apps">Browse all tools →</Link>
+            </Button>
           </div>
         )}
 
@@ -143,7 +150,7 @@ function Desktop() {
         })}
       </div>
 
-      <div className={`dock ${theme ? 'dark' : 'light'}`}>
+      <div className="fixed bottom-4 left-1/2 z-[5000] flex max-w-[94vw] -translate-x-1/2 gap-1.5 overflow-x-auto rounded-3xl border bg-popover/80 px-3.5 py-2.5 text-popover-foreground shadow-lg backdrop-blur-md">
         {ORDER.map((type) => {
           const meta = WIDGETS[type];
           const win = windows.find((w) => w.id === type);
@@ -151,12 +158,19 @@ function Desktop() {
           return (
             <button
               key={type}
-              className={`dock__item ${isOpen ? 'dock__item--open' : ''} ${win?.minimized ? 'dock__item--min' : ''}`}
+              type="button"
+              className={cn(
+                'relative flex min-w-11 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground sm:min-w-14',
+                win?.minimized && 'opacity-55',
+              )}
               title={meta.title}
               onClick={() => (win?.minimized ? restore(type) : open(type))}
             >
-              <span className='dock__icon'>{meta.icon}</span>
-              <span className='dock__label'>{meta.title}</span>
+              <span className="text-2xl leading-none sm:text-[26px]">{meta.icon}</span>
+              <span className="whitespace-nowrap text-[10px] max-sm:hidden">{meta.title}</span>
+              {isOpen && (
+                <span className="absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-foreground" />
+              )}
             </button>
           );
         })}

@@ -1,5 +1,8 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react'
-import { ThemeContext } from '../App';
+import React, { useState, useEffect, useCallback } from 'react';
+import ToolPage from '../components/ToolPage';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 const KEYS = [
   ['C', '⌫', '%', '÷'],
@@ -12,7 +15,6 @@ const KEYS = [
 const OPERATORS = { '÷': '/', '×': '*', '-': '-', '+': '+' };
 
 function Calculator() {
-  const { theme } = useContext(ThemeContext);
   const [expr, setExpr] = useState('');
   const [result, setResult] = useState('0');
 
@@ -73,31 +75,47 @@ function Calculator() {
     return () => window.removeEventListener('keydown', handler);
   }, [press]);
 
+  const keyVariant = (key) => {
+    if (key === '=') return 'default';
+    if (OPERATORS[key] || key === '%') return 'secondary';
+    if (key === 'C' || key === '⌫' || key === '±') return 'secondary';
+    return 'outline';
+  };
+
   return (
-    <div className='page'>
-      <div className='page__content'>
-        <label>🧮 Calculator</label>
-        <div className='content'>
-          <div className='calc'>
-            <div className='calc__display'>
-              <div className='calc__expr'>{expr || ' '}</div>
-              <div className='calc__result'>{result}</div>
+    <ToolPage
+      icon="🧮"
+      title="Calculator"
+      description="Quick arithmetic with full keyboard support — try typing an expression."
+    >
+      <Card className="mx-auto w-full max-w-sm">
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/50 px-4 py-3 text-right">
+            <div className="min-h-5 break-all font-mono text-sm text-muted-foreground">
+              {expr || ' '}
             </div>
-            <div className='calc__keys'>
-              {KEYS.flat().map((key) => (
-                <button
-                  key={key}
-                  className={`calc__key ${OPERATORS[key] || key === '÷' ? 'calc__key--op' : ''} ${key === '=' ? 'calc__key--eq' : ''} ${theme ? 'dark' : 'light'}`}
-                  onClick={() => press(key)}
-                >
-                  {key}
-                </button>
-              ))}
+            <div className="break-all font-mono text-3xl font-semibold tabular-nums" aria-live="polite">
+              {result}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+          <div className="grid grid-cols-4 gap-2">
+            {KEYS.flat().map((key) => (
+              <Button
+                key={key}
+                variant={keyVariant(key)}
+                className={cn(
+                  'h-12 text-lg font-medium',
+                  key === 'C' && 'text-destructive',
+                )}
+                onClick={() => press(key)}
+              >
+                {key}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </ToolPage>
   )
 }
 

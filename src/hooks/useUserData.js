@@ -35,6 +35,10 @@ export function useUserData(user) {
   const [desktop, setDesktopState] = useState(
     Array.isArray(initial.desktop) ? initial.desktop : null
   );
+  // Task projects (kanban): [{id, name, color, order}] — synced like todos.
+  const [projects, setProjectsState] = useState(
+    Array.isArray(initial.projects) ? initial.projects : []
+  );
   // Thin profile mirror (displayName/email/photoURL/lastLogin). Read-only on the
   // client — it rides along in the same snapshot, so exposing it costs no extra
   // reads. Identity itself still comes from the Auth `user` object.
@@ -102,6 +106,14 @@ export function useUserData(user) {
     });
   }, [persist]);
 
+  const setProjects = useCallback((next) => {
+    setProjectsState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      persist({ projects: value });
+      return value;
+    });
+  }, [persist]);
+
   // One shared live listener, attached only while signed in AND tab visible.
   useEffect(() => {
     if (!user) {
@@ -124,6 +136,7 @@ export function useUserData(user) {
         if (typeof val.theme === 'boolean') setThemeState(val.theme);
         setTodosState(Array.isArray(val.todos) ? val.todos : []);
         if (Array.isArray(val.desktop)) setDesktopState(val.desktop);
+        if (Array.isArray(val.projects)) setProjectsState(val.projects);
         setProfileState(val.profile && typeof val.profile === 'object' ? val.profile : null);
         cacheRef.current = { ...cacheRef.current, ...val };
         try {
@@ -160,5 +173,5 @@ export function useUserData(user) {
     };
   }, [user, flush]);
 
-  return { theme, setTheme, todos, setTodos, desktop, setDesktop, profile };
+  return { theme, setTheme, todos, setTodos, desktop, setDesktop, projects, setProjects, profile };
 }

@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ThemeContext } from '../App';
 import { SHORTCUT_GROUPS } from '../toolsData';
 import CommandPalette from './CommandPalette';
+import { Keyboard } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Owns every app-wide keyboard shortcut and the two overlays they drive:
 // the command palette (⌘K) and the shortcut-help sheet (?). Mounted once,
@@ -18,7 +26,7 @@ function isTyping() {
 }
 
 function Shortcuts() {
-  const { theme, setTheme } = useContext(ThemeContext);
+  const { setTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -92,40 +100,39 @@ function Shortcuts() {
     <>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
-      {helpOpen && (
-        <div className='help-backdrop' onMouseDown={() => setHelpOpen(false)}>
-          <div
-            className={`help ${theme ? 'dark' : 'light'}`}
-            role='dialog'
-            aria-label='Keyboard shortcuts'
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <div className='help__head'>
-              <h3>⌨️ Keyboard shortcuts</h3>
-              <button className='help__close' onClick={() => setHelpOpen(false)} aria-label='Close'>×</button>
-            </div>
-            <div className='help__groups'>
-              {SHORTCUT_GROUPS.map((group) => (
-                <div className='help__group' key={group.title}>
-                  <h4>{group.title}</h4>
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className='max-h-[85vh] overflow-y-auto sm:max-w-md' aria-label='Keyboard shortcuts'>
+          <DialogHeader>
+            <DialogTitle className='flex items-center gap-2'>
+              <Keyboard className='size-4' aria-hidden='true' /> Keyboard shortcuts
+            </DialogTitle>
+            <DialogDescription className='sr-only'>
+              Every keyboard shortcut available in DeskDazzle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='flex flex-col gap-6'>
+            {SHORTCUT_GROUPS.map((group) => (
+              <div key={group.title}>
+                <h4 className='mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground'>{group.title}</h4>
+                <div className='flex flex-col gap-1.5'>
                   {group.items.map((item, idx) => (
-                    <div className='help__row' key={idx}>
-                      <span className='help__desc'>{item.desc}</span>
-                      <span className='help__keys'>
+                    <div className='flex items-center justify-between gap-4 text-sm' key={idx}>
+                      <span className='text-muted-foreground'>{item.desc}</span>
+                      <span className='flex shrink-0 items-center gap-1'>
                         {item.keys.map((k, i) => (
                           k === 'then' || k === '–'
-                            ? <span className='help__sep' key={i}>{k}</span>
-                            : <kbd key={i}>{k}</kbd>
+                            ? <span className='text-xs text-muted-foreground' key={i}>{k}</span>
+                            : <kbd className='rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground' key={i}>{k}</kbd>
                         ))}
                       </span>
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

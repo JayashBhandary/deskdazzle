@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
+import { Copy, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import ToolPage from '../components/ToolPage';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
 
-function PasswordGenerator() {
+export function PasswordPanel() {
   const [password, setPassword] = useState('')
   const [passwordLength, setPasswordLength] = useState(12)
   const [uppercase, setUppercase] = useState(true)
@@ -15,10 +22,9 @@ function PasswordGenerator() {
         navigator.clipboard.writeText(text).then(() => {
           // Alert the user that the action took place.
           // Nobody likes hidden stuff being done under the hood!
-          alert("Copied to clipboard");
-      });
+          toast.success('Copied to clipboard');
+        });
       }
-   
     });
   }
 
@@ -71,92 +77,83 @@ function PasswordGenerator() {
 
   useEffect(() => {
     generatePassword();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passwordLength])
 
+  const options = [
+    { id: 'uppercase', label: 'Include Uppercase Letters', checked: uppercase, set: setUppercase },
+    { id: 'lowercase', label: 'Include Lowercase Letters', checked: lowercase, set: setLowercase },
+    { id: 'numbers', label: 'Include Numbers', checked: numbers, set: setNumbers },
+    { id: 'symbols', label: 'Include Symbols', checked: symbols, set: setSymbols },
+  ];
+
   return (
-    <div className='page'>
-      <div className='page__content'>
-
-        <label>🔑 PasswordGenerator</label>
-        <div className='content'>
-        
-          <div>
-          <div className='password' style={{textAlign: 'center',marginTop: '0px', marginBottom: '20px',cursor: 'pointer'}} onClick={()=>{copyToClipboard(password)}}>{password}</div>
-            <div className='passwordcontainer'>
-              <div className='subContainer'>
-                <div className='option'>
-                  <p>Password length: {passwordLength}</p>
-                  
-                </div>
-
-                <div className='subContainer'>
-                <input
-                className='passrange'
-                    type='range'
-                    name='length'
-                    min='4'
-                    max='30'
-                    defaultValue={passwordLength}
-                    onChange={(e) => setPasswordLength(e.target.value)}
-                  />
-                </div>
-
-                <div className='option'>
-                  <input
-                    type='checkbox'
-                    name='uppercase'
-                    defaultChecked={uppercase}
-                    onChange={(e) => setUppercase(e.target.checked)}
-                  />
-                  <p>Include Uppercase Letters</p>
-
-                </div>
-
-                <div className='option'>
-                  <input
-                    type='checkbox'
-                    name='lowercase'
-                    defaultChecked={lowercase}
-                    onChange={(e) => setLowercase(e.target.checked)}
-                  />
-                  <p>Include Lowercase Letters</p>
-
-                </div>
-
-                <div className='option'>
-                  <input
-                    type='checkbox'
-                    name='numbers'
-                    defaultChecked={numbers}
-                    onChange={(e) => setNumbers(e.target.checked)}
-                  />
-                  <p>Include Numbers</p>
-
-                </div>
-
-                <div className='option'>
-                  <input
-                    type='checkbox'
-                    name='symbols'
-                    defaultChecked={symbols}
-                    onChange={(e) => setSymbols(e.target.checked)}
-                  />
-                  <p>Include Symbols</p>
-
-                </div>
-
-                {errors.length && <li className='error'>{errors}</li>}
-              </div>
-            </div>
-          </div>
+    <Card>
+      <CardContent className="space-y-6">
+        <div className="flex justify-end">
+          <Button onClick={generatePassword}>
+            <RefreshCw /> Generate
+          </Button>
         </div>
-      </div>
-    </div>
+
+        <button
+          type="button"
+          onClick={() => copyToClipboard(password)}
+          className="group flex w-full items-center justify-between gap-3 rounded-lg border bg-muted/50 px-4 py-3 text-left font-mono text-lg break-all transition-colors hover:bg-muted"
+          aria-label="Copy password to clipboard"
+        >
+          <span className="min-w-0">{password || '—'}</span>
+          <Copy className="size-4 shrink-0 text-muted-foreground transition-opacity group-hover:opacity-100 sm:opacity-0" />
+        </button>
+
+        <div className="space-y-2">
+            <Label htmlFor="length">
+              Password length: <span className="tabular-nums">{passwordLength}</span>
+            </Label>
+            <input
+              id="length"
+              className="w-full accent-primary"
+              type="range"
+              name="length"
+              min="4"
+              max="30"
+              defaultValue={passwordLength}
+              onChange={(e) => setPasswordLength(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {options.map((opt) => (
+              <div key={opt.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={opt.id}
+                  name={opt.id}
+                  checked={opt.checked}
+                  onCheckedChange={(v) => opt.set(v === true)}
+                />
+                <Label htmlFor={opt.id} className="font-normal">{opt.label}</Label>
+              </div>
+            ))}
+          </div>
+
+          {!!errors.length && (
+            <p role="alert" className="text-sm text-destructive">{errors}</p>
+          )}
+        </CardContent>
+      </Card>
+  )
+}
+
+function PasswordGenerator() {
+  return (
+    <ToolPage
+      icon="🔑"
+      title="Password Generator"
+      description="Generate a random password on-device. Click the password to copy it."
+    >
+      <PasswordPanel />
+    </ToolPage>
   )
 }
 
 export default PasswordGenerator
-
-/**<div style={{textAlign: 'center'}} className='header_button'onClick={generatePassword}>
-                  <label>Generate</label>
-                </div> */

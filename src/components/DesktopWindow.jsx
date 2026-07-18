@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
-import { ThemeContext } from '../App';
+import React, { useEffect, useRef, useState } from 'react'
+import { Minus, Square, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // A draggable / resizable window hosting a single widget.
 // Drag + resize are implemented with native pointer events (no external
 // dependency) so it works reliably on React 19.
 function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMaximize, onChange }) {
-  const { theme } = useContext(ThemeContext);
   const [geo, setGeo] = useState({ x: win.x, y: win.y, width: win.width, height: win.height });
   const rootRef = useRef(null);
   const drag = useRef(null);
@@ -34,7 +34,7 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
 
   // ----- Dragging (title bar) -----
   const onDragDown = (e) => {
-    if (e.target.closest('.dwin__btn')) return;
+    if (e.target.closest('[data-win-btn]')) return;
     onFocus(win.id);
     dragging.current = true;
     drag.current = { px: e.clientX, py: e.clientY, ox: geo.x, oy: geo.y };
@@ -83,37 +83,71 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
     ? { position: 'absolute', inset: 0, zIndex: win.z }
     : { position: 'absolute', left: geo.x, top: geo.y, width: geo.width, height: geo.height, zIndex: win.z };
 
+  const trafficBtn = 'group flex size-3.5 items-center justify-center rounded-full transition-colors [&_svg]:opacity-0 [&_svg]:transition-opacity hover:[&_svg]:opacity-100';
+
   return (
     <div
       ref={rootRef}
-      className={`dwin ${theme ? 'dark' : 'light'}`}
+      className={cn(
+        'flex flex-col overflow-hidden border bg-card text-card-foreground shadow-lg',
+        maximized ? 'rounded-none' : 'rounded-lg',
+      )}
       style={style}
       onMouseDown={() => onFocus(win.id)}
     >
       <div
-        className='dwin__bar'
+        className="flex shrink-0 touch-none select-none items-center gap-3 border-b bg-muted/50 px-3 py-2"
         onPointerDown={maximized ? undefined : onDragDown}
         onPointerMove={maximized ? undefined : onDragMove}
         onPointerUp={maximized ? undefined : onDragUp}
         style={{ cursor: maximized ? 'default' : 'move' }}
       >
-        <span className='dwin__title'>{meta.icon} {meta.title}</span>
-        <div className='dwin__controls'>
-          <span className='dwin__btn' title='Minimize' onClick={() => onMinimize(win.id)}>–</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            data-win-btn
+            title="Close"
+            aria-label="Close"
+            onClick={() => onClose(win.id)}
+            className={cn(trafficBtn, 'bg-red-500 text-red-950 hover:bg-red-400')}
+          >
+            <X className="size-2.5" strokeWidth={3} />
+          </button>
+          <button
+            type="button"
+            data-win-btn
+            title="Minimize"
+            aria-label="Minimize"
+            onClick={() => onMinimize(win.id)}
+            className={cn(trafficBtn, 'bg-amber-400 text-amber-950 hover:bg-amber-300')}
+          >
+            <Minus className="size-2.5" strokeWidth={3} />
+          </button>
           {!isMobile && (
-            <span className='dwin__btn' title={win.maximized ? 'Restore' : 'Maximize'} onClick={() => onMaximize(win.id)}>▢</span>
+            <button
+              type="button"
+              data-win-btn
+              title={win.maximized ? 'Restore' : 'Maximize'}
+              aria-label={win.maximized ? 'Restore' : 'Maximize'}
+              onClick={() => onMaximize(win.id)}
+              className={cn(trafficBtn, 'bg-green-500 text-green-950 hover:bg-green-400')}
+            >
+              <Square className="size-2" strokeWidth={3} />
+            </button>
           )}
-          <span className='dwin__btn dwin__btn--close' title='Close' onClick={() => onClose(win.id)}>×</span>
         </div>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+          {meta.icon} {meta.title}
+        </span>
       </div>
 
-      <div className='dwin__body'>
+      <div className="min-h-0 flex-1 overflow-auto p-3">
         <Body />
       </div>
 
       {!maximized && (
         <div
-          className='dwin__resize'
+          className="absolute bottom-0 right-0 size-4 cursor-nwse-resize touch-none opacity-60 hover:opacity-100 bg-[linear-gradient(135deg,transparent_0_50%,var(--muted-foreground)_50%_60%,transparent_60%_70%,var(--muted-foreground)_70%_80%,transparent_80%)]"
           onPointerDown={onResizeDown}
           onPointerMove={onResizeMove}
           onPointerUp={onResizeUp}

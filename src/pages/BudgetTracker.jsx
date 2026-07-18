@@ -1,10 +1,24 @@
-import React, { useContext, useState } from 'react'
-import { ThemeContext } from '../App';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import React, { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import ToolPage from '../components/ToolPage';
+import { useStore } from '../lib/store/WorkspaceProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const POS = 'text-emerald-600 dark:text-emerald-400';
+const NEG = 'text-destructive';
 
 function BudgetTracker() {
-  const { theme } = useContext(ThemeContext);
-  const [entries, setEntries] = useLocalStorage('deskdazzle.budget', []);
+  const [entries, setEntries] = useStore('budget', []);
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('expense');
@@ -19,62 +33,100 @@ function BudgetTracker() {
     setEntries([{ id: Date.now(), desc, amount: value, type }, ...entries]);
     setDesc('');
     setAmount('');
+    toast.success(`${type === 'income' ? 'Income' : 'Expense'} added`);
   };
 
-  const remove = (id) => setEntries(entries.filter((e) => e.id !== id));
+  const remove = (id) => {
+    setEntries(entries.filter((e) => e.id !== id));
+    toast.success('Transaction removed');
+  };
 
   const fmt = (n) => `₹${n.toFixed(2)}`;
 
+  const SUMMARY = [
+    { label: 'Balance', value: balance, tone: balance >= 0 ? POS : NEG },
+    { label: 'Income', value: income, tone: POS },
+    { label: 'Expense', value: expense, tone: NEG },
+  ];
+
   return (
-    <div className='page'>
-      <div className='page__content'>
-        <label>💳 BudgetTracker</label>
-        <div className='content'>
-          <div className='tool tool--split'>
-            <div className='tool__panel'>
-              <div className={`budget__summary ${theme ? 'dark' : 'light'}`}>
-                <div><span>Balance</span><strong className={balance >= 0 ? 'pos' : 'neg'}>{fmt(balance)}</strong></div>
-                <div><span>Income</span><strong className='pos'>{fmt(income)}</strong></div>
-                <div><span>Expense</span><strong className='neg'>{fmt(expense)}</strong></div>
-              </div>
-              <input
-                className={`tool__input ${theme ? 'dark' : 'light'}`}
-                value={desc}
-                placeholder='Description'
-                onChange={(e) => setDesc(e.target.value)}
-              />
-              <div className='tool__row'>
-                <input
-                  className={`tool__num ${theme ? 'dark' : 'light'}`}
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={amount}
-                  placeholder='Amount'
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-                <select className={`tool__num ${theme ? 'dark' : 'light'}`} value={type} onChange={(e) => setType(e.target.value)}>
-                  <option value='expense'>Expense</option>
-                  <option value='income'>Income</option>
-                </select>
-                <button className={`header_button ${theme ? 'dark' : 'light'}`} onClick={add}>➕ Add</button>
-              </div>
-            </div>
-            <div className='tool__list'>
-              {entries.length === 0
-                ? <p>No transactions yet. 💸</p>
-                : entries.map((e) => (
-                  <div key={e.id} className={`budget__row ${theme ? 'dark' : 'light'}`}>
-                    <span>{e.desc}</span>
-                    <span className={e.type === 'income' ? 'pos' : 'neg'}>{e.type === 'income' ? '+' : '-'}{fmt(e.amount)}</span>
-                    <span className='note-card__action' onClick={() => remove(e.id)}>🗑️</span>
-                  </div>
-                ))}
-            </div>
-          </div>
+    <ToolPage
+      icon='💳'
+      title='Budget Tracker'
+      description='Track income and expenses at a glance.'
+    >
+      <div className='mb-4 grid grid-cols-3 gap-3'>
+        {SUMMARY.map((s) => (
+          <Card key={s.label} className='py-4'>
+            <CardContent className='px-4 text-center'>
+              <span className='block text-xs uppercase tracking-wide text-muted-foreground'>{s.label}</span>
+              <strong className={`text-lg font-semibold tabular-nums ${s.tone}`}>{fmt(s.value)}</strong>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className='space-y-2'>
+        <Input
+          value={desc}
+          placeholder='Description'
+          onChange={(e) => setDesc(e.target.value)}
+          aria-label='Transaction description'
+        />
+        <div className='flex flex-wrap gap-2'>
+          <Input
+            className='min-w-32 flex-1'
+            type='number'
+            min='0'
+            step='0.01'
+            value={amount}
+            placeholder='Amount'
+            onChange={(e) => setAmount(e.target.value)}
+            aria-label='Transaction amount'
+          />
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className='w-32' aria-label='Transaction type'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='expense'>Expense</SelectItem>
+              <SelectItem value='income'>Income</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={add}>
+            <Plus /> Add
+          </Button>
         </div>
       </div>
-    </div>
+
+      <div className='mt-6 space-y-2'>
+        {entries.length === 0 ? (
+          <Card>
+            <CardContent className='py-10 text-center text-muted-foreground'>
+              No transactions yet. 💸
+            </CardContent>
+          </Card>
+        ) : (
+          entries.map((e) => (
+            <div key={e.id} className='group flex items-center gap-3 rounded-md border bg-card px-3 py-2'>
+              <span className='min-w-0 flex-1 truncate'>{e.desc}</span>
+              <span className={`font-medium tabular-nums ${e.type === 'income' ? POS : NEG}`}>
+                {e.type === 'income' ? '+' : '-'}{fmt(e.amount)}
+              </span>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='opacity-60 transition-opacity hover:opacity-100 group-hover:opacity-100'
+                onClick={() => remove(e.id)}
+                aria-label={`Delete “${e.desc}”`}
+              >
+                <Trash2 className='size-4' />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </ToolPage>
   )
 }
 

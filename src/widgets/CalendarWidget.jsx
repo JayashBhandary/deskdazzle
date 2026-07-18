@@ -1,4 +1,7 @@
 import React, { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -23,16 +26,31 @@ function CalendarWidget() {
   });
 
   return (
-    <div className='widget calw'>
-      <div className='calw__header'>
-        <span className='calw__nav' onClick={() => shift(-1)}>‹</span>
-        <span className='calw__title'>{MONTHS[view.month]} {view.year}</span>
-        <span className='calw__nav' onClick={() => shift(1)}>›</span>
+    <div className="flex h-full flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" className="size-7" onClick={() => shift(-1)} aria-label="Previous month">
+          <ChevronLeft className="size-4" />
+        </Button>
+        <span className="text-sm font-semibold">{MONTHS[view.month]} {view.year}</span>
+        <Button variant="ghost" size="icon" className="size-7" onClick={() => shift(1)} aria-label="Next month">
+          <ChevronRight className="size-4" />
+        </Button>
       </div>
-      <div className='calw__grid'>
-        {DAYS.map((d, i) => <div key={i} className='calw__dow'>{d}</div>)}
+      <div className="grid grid-cols-7 gap-0.5 text-center">
+        {DAYS.map((d, i) => (
+          <div key={i} className="py-1 text-[10px] font-medium uppercase text-muted-foreground">{d}</div>
+        ))}
         {cells.map((d, i) => (
-          <div key={i} className={`calw__cell ${d && isToday(d) ? 'calw__cell--today' : ''}`}>{d || ''}</div>
+          <div
+            key={i}
+            className={cn(
+              'flex aspect-square items-center justify-center rounded-md text-xs tabular-nums',
+              d && isToday(d) && 'bg-primary font-semibold text-primary-foreground',
+              d && !isToday(d) && 'hover:bg-accent',
+            )}
+          >
+            {d || ''}
+          </div>
         ))}
       </div>
     </div>

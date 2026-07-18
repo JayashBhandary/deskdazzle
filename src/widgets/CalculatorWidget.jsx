@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const KEYS = [
   ['C', '⌫', '%', '÷'],
@@ -37,20 +39,21 @@ function CalculatorWidget() {
   useEffect(() => { setResult(expr ? evaluate(expr) : '0'); }, [expr]);
 
   return (
-    <div className='widget calcw'>
-      <div className='calcw__display'>
-        <div className='calcw__expr'>{expr || ' '}</div>
-        <div className='calcw__result'>{result}</div>
+    <div className="flex h-full flex-col gap-2">
+      <div className="rounded-lg bg-muted px-2.5 py-2 text-right">
+        <div className="min-h-4 break-all font-mono text-xs text-muted-foreground">{expr || ' '}</div>
+        <div className="break-all font-mono text-2xl font-extrabold">{result}</div>
       </div>
-      <div className='calcw__keys'>
+      <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5">
         {KEYS.flat().map((key) => (
-          <button
+          <Button
             key={key}
-            className={`calcw__key ${OPS.has(key) ? 'calcw__key--op' : ''} ${key === '=' ? 'calcw__key--eq' : ''}`}
+            variant={key === '=' ? 'default' : OPS.has(key) ? 'outline' : 'secondary'}
+            className={cn('h-full min-h-9 text-base', OPS.has(key) || key === '=' ? 'font-bold' : 'font-medium')}
             onClick={() => press(key)}
           >
             {key}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

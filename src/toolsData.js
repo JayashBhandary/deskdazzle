@@ -2,27 +2,41 @@
 // Consumed by the Apps page, the command palette, and the Docs page so the
 // catalogue never drifts between them.
 
+// Category order for the Apps grid (web-OS "folders"). Every tool declares a
+// `category` that matches one of these.
+export const CATEGORIES = ['Create', 'Convert', 'Study', 'Plan', 'Utilities', 'Web'];
+
+// Post-consolidation catalogue: several tools were merged into tabbed apps
+// (Images, Converters, Design, Vault). Old paths still work — App.jsx redirects
+// them to the merged app + the right ?tab=.
 export const TOOLS = [
-  { path: '/currency-converter', name: 'Currency Converter', icon: '💰', desc: 'Convert between world currencies.', keywords: 'money exchange forex rate' },
-  { path: '/budget-tracker', name: 'Budget Tracker', icon: '💳', desc: 'Track income and expenses at a glance.', keywords: 'money finance expense spending' },
-  { path: '/unit-converter', name: 'Unit Converter', icon: '📏', desc: 'Convert length, weight, temperature and more.', keywords: 'measure metric imperial length weight' },
-  { path: '/to-do-list', name: 'To-Do List', icon: '📝', desc: 'Keep track of tasks, synced to your account.', keywords: 'tasks todo checklist productivity' },
-  { path: '/password-generator', name: 'Password Generator', icon: '🔑', desc: 'Generate strong, random passwords.', keywords: 'security random secure credentials' },
-  { path: '/text-encryptor', name: 'Text Encryptor', icon: '🔒', desc: 'Encrypt and decrypt text with a passphrase.', keywords: 'security crypto cipher aes secret' },
-  { path: '/color-picker', name: 'Color Picker', icon: '🎨', desc: 'Pick colours and grab their hex values.', keywords: 'hex rgb design palette swatch' },
-  { path: '/gradient-generator', name: 'Gradient Generator', icon: '🌈', desc: 'Build CSS gradients visually.', keywords: 'css design background colour' },
-  { path: '/image-resizer', name: 'Image Resizer', icon: '📐', desc: 'Resize images to exact dimensions.', keywords: 'photo picture scale dimensions' },
-  { path: '/markdown-previewer', name: 'Markdown Previewer', icon: '💻', desc: 'Write Markdown and preview it live.', keywords: 'md text editor preview docs' },
-  { path: '/qrcode-generator', name: 'QR Code Generator', icon: '🔳', desc: 'Turn text or links into a QR code.', keywords: 'qr barcode link scan' },
-  { path: '/calender', name: 'Calendar', icon: '📅', desc: 'Browse a monthly calendar.', keywords: 'date month schedule day' },
-  { path: '/image-optimizer', name: 'Image Optimizer', icon: '🖼️', desc: 'Compress images to shrink file size.', keywords: 'photo compress optimise quality' },
-  { path: '/translation-tool', name: 'Translation Tool', icon: '💬', desc: 'Translate text between languages.', keywords: 'language translate localisation' },
-  { path: '/url-shortner', name: 'URL Shortener', icon: '🔗', desc: 'Shorten long links into tidy ones.', keywords: 'link short tiny redirect' },
-  { path: '/text-to-speech', name: 'Text to Speech', icon: '🗣️', desc: 'Read any text out loud.', keywords: 'voice speak audio accessibility tts' },
-  { path: '/note-taking', name: 'Note Taking', icon: '💡', desc: 'Jot down quick notes.', keywords: 'notes memo write ideas' },
-  { path: '/weather', name: 'Weather', icon: '🌦️', desc: 'Check the current weather.', keywords: 'forecast temperature climate rain' },
-  { path: '/calculator', name: 'Calculator', icon: '🧮', desc: 'A simple, fast calculator.', keywords: 'math arithmetic compute numbers' },
-  { path: '/recipe-finder', name: 'Recipe Finder', icon: '📜', desc: 'Discover recipes to cook.', keywords: 'food cooking meal ingredients' },
+  // --- Create ---
+  { path: '/images', name: 'Images', icon: '🖼️', desc: 'Resize, optimize and batch-convert images — all on-device.', keywords: 'image photo resize optimise compress batch zip png jpeg webp bulk', category: 'Create' },
+  { path: '/design', name: 'Design', icon: '🎨', desc: 'Pick colours and build CSS gradients.', keywords: 'colour color hex rgb palette swatch gradient css background design', category: 'Create' },
+  { path: '/qrcode-generator', name: 'QR Code Generator', icon: '🔳', desc: 'Turn text or links into a QR code.', keywords: 'qr barcode link scan', category: 'Create' },
+
+  // --- Convert ---
+  { path: '/converters', name: 'Converters', icon: '🔁', desc: 'Data formats, units and currencies — data & units run on-device.', keywords: 'convert csv json yaml base64 url markdown encode decode unit length weight currency money exchange rate wasm', category: 'Convert' },
+
+  // --- Study ---
+  { path: '/note-taking', name: 'Notes', icon: '💡', desc: 'Markdown notes with [[wiki links]], backlinks and instant search.', keywords: 'notes memo write ideas markdown wiki links backlinks knowledge preview', category: 'Study' },
+  { path: '/flashcards', name: 'Flashcards', icon: '🃏', desc: 'Spaced-repetition study cards (great for med school & exams).', keywords: 'study spaced repetition anki srs medicine exam memorize learn', category: 'Study' },
+
+  // --- Plan ---
+  { path: '/to-do-list', name: 'Tasks', icon: '📝', desc: 'Projects, subtasks and a kanban board — with natural-language quick-add.', keywords: 'tasks todo checklist productivity kanban board projects subtasks', category: 'Plan' },
+  { path: '/roadmap', name: 'Roadmap Planner', icon: '🗺️', desc: 'Plan goals as milestones and steps — startup, research or exam prep.', keywords: 'roadmap milestones goals plan startup research project timeline', category: 'Plan' },
+  { path: '/calender', name: 'Calendar', icon: '📅', desc: 'Browse a monthly calendar.', keywords: 'date month schedule day', category: 'Plan' },
+  { path: '/budget-tracker', name: 'Budget Tracker', icon: '💳', desc: 'Track income and expenses at a glance.', keywords: 'money finance expense spending budget', category: 'Plan' },
+
+  // --- Utilities ---
+  { path: '/clock', name: 'Clock', icon: '⏰', desc: 'World clock, alarms, stopwatch, timers and focus sessions.', keywords: 'clock time world timezone city alarm stopwatch lap timer countdown pomodoro focus study break', category: 'Utilities' },
+  { path: '/vault', name: 'Vault', icon: '🔐', desc: 'Generate strong passwords and encrypt text — 100% on-device.', keywords: 'security password generator random encrypt decrypt crypto cipher aes secret vault', category: 'Utilities' },
+  { path: '/calculator', name: 'Calculator', icon: '🧮', desc: 'A simple, fast calculator.', keywords: 'math arithmetic compute numbers', category: 'Utilities' },
+  { path: '/text-to-speech', name: 'Text to Speech', icon: '🗣️', desc: 'Read any text out loud.', keywords: 'voice speak audio accessibility tts', category: 'Utilities' },
+
+  // --- Web (need a connection) ---
+  { path: '/weather', name: 'Weather', icon: '🌦️', desc: 'Check the current weather.', keywords: 'forecast temperature climate rain', category: 'Web' },
+  { path: '/translation-tool', name: 'Translation Tool', icon: '💬', desc: 'Translate text between languages.', keywords: 'language translate localisation', category: 'Web' },
 ];
 
 // Primary destinations that live in the top navigation / command palette.

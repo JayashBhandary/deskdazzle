@@ -1,13 +1,20 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
-import { ThemeContext } from '../App';
+import React, { useEffect, useRef, useState } from 'react'
 import { updateUserProfile } from '../auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Modal for editing the display name + avatar URL. Email is sourced from the
 // Google account and isn't editable here, so it's shown read-only.
 function EditProfileDialog({ open, onClose, user, profile }) {
-  const { theme } = useContext(ThemeContext);
-  const tone = theme ? 'dark' : 'light';
-
   const currentName = profile?.displayName ?? user?.displayName ?? '';
   const currentPhoto = profile?.photoURL ?? user?.photoURL ?? '';
 
@@ -30,16 +37,6 @@ function EditProfileDialog({ open, onClose, user, profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Close on Escape.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape' && !saving) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, saving, onClose]);
-
-  if (!open) return null;
-
   const dirty = name.trim() !== currentName || photoURL.trim() !== currentPhoto;
 
   const save = async () => {
@@ -55,37 +52,39 @@ function EditProfileDialog({ open, onClose, user, profile }) {
     }
   };
 
-  return (
-    <div className='editp-backdrop' onMouseDown={() => !saving && onClose()}>
-      <div
-        className={`editp ${tone}`}
-        role='dialog'
-        aria-label='Edit profile'
-        aria-modal='true'
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className='editp__head'>
-          <h3>Edit profile</h3>
-          <button className='help__close' onClick={onClose} disabled={saving} aria-label='Close'>×</button>
-        </div>
+  // Covers Escape, the built-in close button and backdrop clicks — all of
+  // which are ignored while a save is in flight.
+  const handleOpenChange = (next) => {
+    if (!next && !saving) onClose();
+  };
 
-        <div className='editp__preview'>
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className='sm:max-w-md'>
+        <DialogHeader>
+          <DialogTitle>Edit profile</DialogTitle>
+          <DialogDescription className='sr-only'>
+            Update your display name and avatar photo.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='flex flex-col items-center gap-2'>
           <img
-            className='editp__avatar'
+            className='size-20 rounded-full border object-cover'
             alt='avatar preview'
             referrerPolicy='no-referrer'
             src={photoURL.trim() || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"/>'}
             onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
             onLoad={(e) => { e.currentTarget.style.visibility = 'visible'; }}
           />
-          <span className='editp__preview-label'>Avatar preview</span>
+          <span className='text-xs text-muted-foreground'>Avatar preview</span>
         </div>
 
-        <label className='editp__field'>
-          <span>Display name</span>
-          <input
+        <div className='grid gap-2'>
+          <Label htmlFor='editp-name'>Display name</Label>
+          <Input
+            id='editp-name'
             ref={nameRef}
-            className={`editp__input ${tone}`}
             type='text'
             value={name}
             maxLength={80}
@@ -93,12 +92,12 @@ function EditProfileDialog({ open, onClose, user, profile }) {
             onKeyDown={(e) => e.key === 'Enter' && save()}
             placeholder='Your name'
           />
-        </label>
+        </div>
 
-        <label className='editp__field'>
-          <span>Photo URL</span>
-          <input
-            className={`editp__input ${tone}`}
+        <div className='grid gap-2'>
+          <Label htmlFor='editp-photo'>Photo URL</Label>
+          <Input
+            id='editp-photo'
             type='url'
             value={photoURL}
             onChange={(e) => setPhotoURL(e.target.value)}
@@ -106,27 +105,32 @@ function EditProfileDialog({ open, onClose, user, profile }) {
             placeholder='https://…'
           />
           {user?.photoURL && photoURL.trim() !== user.photoURL && (
-            <button type='button' className='editp__reset' onClick={() => setPhotoURL(user.photoURL)}>
+            <Button
+              type='button'
+              variant='link'
+              className='h-auto w-fit p-0 text-xs'
+              onClick={() => setPhotoURL(user.photoURL)}
+            >
               Use my Google photo
-            </button>
+            </Button>
           )}
-        </label>
-
-        <label className='editp__field'>
-          <span>Email</span>
-          <input className={`editp__input ${tone}`} type='text' value={user?.email || ''} readOnly disabled />
-        </label>
-
-        {error && <p className='editp__error'>{error}</p>}
-
-        <div className='editp__actions'>
-          <button className={`editp__btn editp__btn--ghost ${tone}`} onClick={onClose} disabled={saving}>Cancel</button>
-          <button className='editp__btn editp__btn--save' onClick={save} disabled={saving || !dirty}>
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
         </div>
-      </div>
-    </div>
+
+        <div className='grid gap-2'>
+          <Label htmlFor='editp-email'>Email</Label>
+          <Input id='editp-email' type='text' value={user?.email || ''} readOnly disabled />
+        </div>
+
+        {error && <p className='text-sm text-destructive'>{error}</p>}
+
+        <DialogFooter>
+          <Button variant='ghost' onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving || !dirty}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,40 +1,39 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom';
-import { ThemeContext } from '../App';
+
+const footerLinkClass = 'text-sm text-muted-foreground transition-colors hover:text-foreground';
 
 function Footer() {
-  const { theme } = useContext(ThemeContext);
   return (
-    <footer>
-      <div className='footer__options'>
-      <div className='footertop'></div>
-      <div className='footermiddle'>
-        <section className='middlesec'>
-          <h6 style={{fontWeight: 'bold'}}>DeskDazzle</h6>
-          <Link  className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Home</Link>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Github</Link>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/docs'>Go to Docs</Link>
-        </section>
-        <section className='middlesec'>
-          <h6 style={{fontWeight: 'bold'}}>Support</h6>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Contact Us</Link>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} href='/'>Help</Link>
-        </section>
-        
-        <section></section>
-      </div>
-      <div style={{fontSize: '16px',paddingBottom: '30px'}} className='footerbottom'>{"Developed with ❤️ by "}<a style={{fontSize: '16px', textDecoration: 'underline'}} className={theme ? "dark" : "light"} href='https://www.instagram.com/jayash_bhandary_' target='_blank' rel="noreferrer">Jayash Bhandary</a></div>
+    <footer className='border-t bg-background'>
+      <div className='mx-auto max-w-6xl px-4 py-10'>
+        <div className='flex flex-wrap gap-x-16 gap-y-8'>
+          <section className='flex flex-col gap-2'>
+            <h6 className='text-sm font-semibold text-foreground'>DeskDazzle</h6>
+            <Link className={footerLinkClass} to='/'>Home</Link>
+            <Link className={footerLinkClass} to='/'>Github</Link>
+            <Link className={footerLinkClass} to='/docs'>Go to Docs</Link>
+          </section>
+          <section className='flex flex-col gap-2'>
+            <h6 className='text-sm font-semibold text-foreground'>Support</h6>
+            <Link className={footerLinkClass} to='/'>Contact Us</Link>
+            <Link className={footerLinkClass} to='/'>Help</Link>
+          </section>
+        </div>
+        <p className='mt-10 text-sm text-muted-foreground'>
+          {'Developed with ❤️ by '}
+          <a
+            className='underline underline-offset-4 transition-colors hover:text-foreground'
+            href='https://www.instagram.com/jayash_bhandary_'
+            target='_blank'
+            rel='noreferrer'
+          >
+            Jayash Bhandary
+          </a>
+        </p>
       </div>
     </footer>
   )
 }
 
 export default Footer
-
-
-/**<section className='middlesec'>
-          <h6 style={{fontWeight: 'bold'}}>Legal</h6>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Privacy</Link>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Terms of Use</Link>
-          <Link className={`footer__a ${theme ? "dark" : "light"}`} to='/'>Legal Notice</Link>
-        </section> */
