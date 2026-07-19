@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { convertImage } from '@/lib/converter-client';
 import { zipBlobs } from '@/lib/zip';
-import { EXT, humanBytes } from '@/lib/image-shared';
+import { EXT, humanBytes, humanDuration } from '@/lib/image-shared';
 
 const FORMATS = [
   { value: 'png', label: 'PNG' },
@@ -51,6 +51,8 @@ export function BatchPanel() {
   const [busy, setBusy] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Wall-clock time of the last completed batch run (ms), for the summary line.
+  const [batchMs, setBatchMs] = useState(null);
   const fileRef = useRef(null);
   const runRef = useRef(0); // bumped to cancel in-flight batches
   const itemsRef = useRef(items);
@@ -83,6 +85,7 @@ export function BatchPanel() {
   // Settings changed → previous results no longer match; back to pending.
   const resetResults = (updater) => {
     runRef.current += 1;
+    setBatchMs(null);
     setItems((prev) =>
       prev.map((it) => {
         if (it.result?.url) URL.revokeObjectURL(it.result.url);
@@ -114,6 +117,8 @@ export function BatchPanel() {
     const queue = itemsRef.current.filter((it) => it.status !== 'done');
     if (!queue.length || busy) return;
     setBusy(true);
+    setBatchMs(null);
+    const startedAt = performance.now();
     const run = ++runRef.current;
     const opts = {
       format,
@@ -130,7 +135,9 @@ export function BatchPanel() {
           prev.map((it) => (it.id === item.id ? { ...it, status: 'working' } : it)),
         );
         try {
+          const t0 = performance.now();
           const out = await convertImage(item.file, opts);
+          const took = performance.now() - t0;
           setItems((prev) => {
             // Batch cancelled or row removed mid-flight → drop the result.
             if (runRef.current !== run || !prev.some((it) => it.id === item.id)) {
@@ -139,7 +146,7 @@ export function BatchPanel() {
             }
             return prev.map((it) =>
               it.id === item.id
-                ? { ...it, status: 'done', result: out, name: outName(item.file.name, opts.format) }
+                ? { ...it, status: 'done', result: out, took, name: outName(item.file.name, opts.format) }
                 : it,
             );
           });
@@ -157,7 +164,10 @@ export function BatchPanel() {
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
     setBusy(false);
     if (runRef.current !== run) return;
-    if (failed === 0) toast.success(`Converted ${total} image${total === 1 ? '' : 's'}`);
+    const batchTook = performance.now() - startedAt;
+    setBatchMs(batchTook);
+    if (failed === 0)
+      toast.success(`Converted ${total} image${total === 1 ? '' : 's'} in ${humanDuration(batchTook)}`);
     else toast.error(`${failed} of ${total} conversion${total === 1 ? '' : 's'} failed`);
   };
 
@@ -298,6 +308,7 @@ export function BatchPanel() {
                 <span className="ml-auto text-xs text-muted-foreground">
                   {items.length} file{items.length === 1 ? '' : 's'}
                   {doneCount > 0 ? ` · ${doneCount} converted` : ''}
+                  {batchMs != null ? ` · ${humanDuration(batchMs)}` : ''}
                 </span>
               )}
             </div>
@@ -342,6 +353,7 @@ export function BatchPanel() {
                             {' · '}
                             {it.result.width} × {it.result.height}px
                             {it.result.downscaled ? ' (downscaled)' : ''}
+                            {it.took != null ? ` · ${humanDuration(it.took)}` : ''}
                           </p>
                         ) : it.status === 'error' ? (
                           <p className="truncate text-xs text-destructive">{it.error}</p>

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { convertImage } from '@/lib/converter-client';
-import { humanBytes, EXT } from '@/lib/image-shared';
+import { humanBytes, humanDuration, EXT } from '@/lib/image-shared';
 
 const FORMATS = [
   { value: 'png', label: 'PNG' },
@@ -32,10 +32,12 @@ export function ResizePanel() {
   const [height, setHeight] = useState(0);
   const [format, setFormat] = useState('png');
   const [result, setResult] = useState(null);
+  const [elapsed, setElapsed] = useState(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
 
   const clearResult = () => {
+    setElapsed(null);
     setResult((r) => {
       if (r?.url) URL.revokeObjectURL(r.url);
       return null;
@@ -83,14 +85,19 @@ export function ResizePanel() {
     if (!file || busy) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const out = await convertImage(file, {
         format,
         maxSize: Math.max(Number(width) || 0, Number(height) || 0),
         quality: 0.92,
       });
+      const took = performance.now() - t0;
       clearResult();
       setResult(out);
-      toast.success(`Resized to ${out.width} × ${out.height}px (${humanBytes(out.bytes)})`);
+      setElapsed(took);
+      toast.success(
+        `Resized to ${out.width} × ${out.height}px (${humanBytes(out.bytes)}) in ${humanDuration(took)}`,
+      );
     } catch (err) {
       toast.error(`Resize failed: ${err instanceof Error ? err.message : err}`);
     } finally {
@@ -177,6 +184,7 @@ export function ResizePanel() {
                 {result && (
                   <p className="text-xs text-muted-foreground">
                     Result: {result.width} × {result.height}px · {humanBytes(result.bytes)}
+                    {elapsed != null ? ` · resized in ${humanDuration(elapsed)}` : ''}
                   </p>
                 )}
               </>

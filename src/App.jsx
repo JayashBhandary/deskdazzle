@@ -1,5 +1,5 @@
 import React, { useState, createContext, useEffect, useMemo, useRef } from 'react';
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Apps from './pages/Apps';
 import Home from './pages/Home';
 import Desktop from './pages/Desktop';
@@ -143,12 +143,6 @@ function App() {
         <Shortcuts />
         <SettingsRuntime />
         <div className={`app flex min-h-screen flex-col bg-background text-foreground ${theme ? "dark" : "light"}`}>
-          <Link
-            className="fixed bottom-4 right-4 z-40 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105"
-            to='/donate'
-          >
-            🙌 Donate
-          </Link>
           <Header />
           <main className="min-h-screen flex-1">
           <Routes>

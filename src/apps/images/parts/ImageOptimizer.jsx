@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { convertImage } from '@/lib/converter-client';
-import { humanBytes, EXT } from '@/lib/image-shared';
+import { humanBytes, humanDuration, EXT } from '@/lib/image-shared';
 
 const FORMATS = [
   { value: 'jpeg', label: 'JPEG' },
@@ -29,10 +29,12 @@ export function OptimizePanel() {
   const [quality, setQuality] = useState(0.7);
   const [format, setFormat] = useState('jpeg');
   const [result, setResult] = useState(null);
+  const [elapsed, setElapsed] = useState(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
 
   const clearResult = () => {
+    setElapsed(null);
     setResult((r) => {
       if (r?.url) URL.revokeObjectURL(r.url);
       return null;
@@ -56,11 +58,14 @@ export function OptimizePanel() {
     if (!file || busy) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const out = await convertImage(file, { format, maxSize: 0, quality });
+      const took = performance.now() - t0;
       clearResult();
       setResult(out);
+      setElapsed(took);
       const pct = Math.max(0, Math.round((1 - out.bytes / file.size) * 100));
-      toast.success(`Optimized: ${humanBytes(out.bytes)} (${pct}% smaller)`);
+      toast.success(`Optimized: ${humanBytes(out.bytes)} (${pct}% smaller) in ${humanDuration(took)}`);
     } catch (err) {
       toast.error(`Optimize failed: ${err instanceof Error ? err.message : err}`);
     } finally {
@@ -146,6 +151,9 @@ export function OptimizePanel() {
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{humanBytes(file.size)} → {humanBytes(result.bytes)}</span>
                     <Badge variant="secondary" className="font-normal">{saved}% smaller</Badge>
+                    {elapsed != null && (
+                      <Badge variant="outline" className="font-normal">{humanDuration(elapsed)}</Badge>
+                    )}
                   </div>
                 )}
               </>

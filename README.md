@@ -1,8 +1,16 @@
+<div align="center">
+
+<a href="https://deskdazzle.web.app/">
+  <img src="./public/logo512.png" alt="DeskDazzle logo" width="128" height="128" />
+</a>
+
 # Desk Dazzle — Your Swiss-Army-Knife Web App
 
-### Version: 0.2.0
+### 🚀 [**deskdazzle.web.app**](https://deskdazzle.web.app/)
 
-#### Author: Jayash Bhandary
+**Version 0.2.0** · by Jayash Bhandary
+
+</div>
 
 ---
 
