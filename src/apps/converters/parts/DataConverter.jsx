@@ -88,7 +88,9 @@ export function DataPanel() {
     toast.success('Output copied to clipboard');
   };
 
-  const BOX = 'h-[55vh] resize-none overflow-auto [field-sizing:fixed] font-mono text-sm';
+  // Compact on phones (input + output stack vertically); full height once the
+  // two panes sit side by side from `md` up.
+  const BOX = 'h-[38vh] md:h-[55vh] resize-none overflow-auto [field-sizing:fixed] font-mono text-sm';
 
   return (
     <>

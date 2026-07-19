@@ -1,4 +1,4 @@
-import React, { useState, createContext, useEffect, useMemo } from 'react';
+import React, { useState, createContext, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Apps from './pages/Apps';
 import Home from './pages/Home';
@@ -71,9 +71,24 @@ function App() {
   const { theme, setTheme, todos, setTodos, desktop, setDesktop, projects, setProjects, profile } = useUserData(user);
 
   // Tailwind's `dark:` variant (and portaled shadcn overlays rendered on
-  // document.body) key off a `.dark` class on <html>.
+  // document.body) key off a `.dark` class on <html>. We wrap the switch in a
+  // short-lived `theme-transition` class so every colour cross-fades smoothly
+  // (see index.css) — but skip it on the first paint so the initial theme
+  // doesn't animate in.
+  const firstThemeRender = useRef(true);
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', !!theme);
+    const root = document.documentElement;
+    if (firstThemeRender.current) {
+      firstThemeRender.current = false;
+      root.classList.toggle('dark', !!theme);
+      return;
+    }
+    root.classList.add('theme-transition');
+    // Flush styles so the browser registers the transition before colours change.
+    void root.offsetWidth;
+    root.classList.toggle('dark', !!theme);
+    const timer = setTimeout(() => root.classList.remove('theme-transition'), 300);
+    return () => clearTimeout(timer);
   }, [theme]);
 
   // Memoize the store so consumers only re-render when a value actually
