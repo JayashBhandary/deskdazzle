@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { ThemeContext } from '../App';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { signInWithGoogle } from '../auth';
+import { signInWithGoogle, signOutUser } from '../auth';
 import { NAV_LINKS } from '../toolsData';
-import { LogIn, Menu, Moon, Search, Sun } from 'lucide-react';
+import { ChevronDown, LayoutGrid, LogIn, LogOut, Menu, Moon, Plus, Search, Settings, Sun, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -12,7 +12,18 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import WorkspaceManager from './WorkspaceManager';
 import { cn } from '@/lib/utils';
 
 // Fired by the header search button and consumed by the global Shortcuts
@@ -37,8 +48,14 @@ const drawerLinkClass = ({ isActive }) =>
   );
 
 function Header() {
-  const { theme, setTheme, isLoggedIn, user, profile } = useContext(ThemeContext);
+  const {
+    theme, setTheme, isLoggedIn, user, profile,
+    workspaces = [], activeWorkspaceId, switchWorkspace,
+  } = useContext(ThemeContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  // When true, the manager dialog opens with the "create" field focused.
+  const [manageCreate, setManageCreate] = useState(false);
   const location = useLocation();
 
   // Close the mobile drawer whenever the route changes.
@@ -46,20 +63,76 @@ function Header() {
 
   const handleThemeChange = () => setTheme(theme === false ? true : false);
 
+  const openManager = (focusCreate) => {
+    setManageCreate(focusCreate);
+    setManageOpen(true);
+  };
+
+  const activeWs = workspaces.find((w) => w.id === activeWorkspaceId);
+
+  // Shared workspace-switcher items, used by both the profile menu and the
+  // dedicated workspace chip so they never drift apart.
+  const workspaceMenuItems = (
+    <>
+      <DropdownMenuRadioGroup value={activeWorkspaceId} onValueChange={switchWorkspace}>
+        {workspaces.map((ws) => (
+          <DropdownMenuRadioItem key={ws.id} value={ws.id}>
+            <span className='mr-1'>{ws.emoji}</span>
+            <span className='truncate'>{ws.name}</span>
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+      <DropdownMenuItem onSelect={() => openManager(true)}>
+        <Plus /> New workspace
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => openManager(false)}>
+        <LayoutGrid /> Manage workspaces…
+      </DropdownMenuItem>
+    </>
+  );
+
   const profileSlot = isLoggedIn
     ? (
-      <Link
-        to='/profile'
-        aria-label='Profile'
-        className='rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50'
-      >
-        <img
-          alt='profile'
-          src={profile?.photoURL || user?.photoURL}
-          referrerPolicy='no-referrer'
-          className='size-8 rounded-full border object-cover'
-        />
-      </Link>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type='button'
+            aria-label='Account menu'
+            className='rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50'
+          >
+            <img
+              alt='profile'
+              src={profile?.photoURL || user?.photoURL}
+              referrerPolicy='no-referrer'
+              className='size-8 rounded-full border object-cover'
+            />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='w-60'>
+          <DropdownMenuLabel className='flex flex-col gap-0.5'>
+            <span className='truncate text-sm'>{profile?.displayName || user?.displayName || 'Account'}</span>
+            {user?.email && <span className='truncate text-xs font-normal text-muted-foreground'>{user.email}</span>}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to='/profile'><User /> Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to='/settings'><Settings /> Settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className='text-xs font-normal text-muted-foreground'>Workspaces</DropdownMenuLabel>
+          {workspaceMenuItems}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={handleThemeChange}>
+            {theme ? <Moon /> : <Sun />} Toggle theme
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant='destructive' onSelect={() => signOutUser()}>
+            <LogOut /> Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     )
     : (
       <Button variant='outline' size='sm' onClick={signInWithGoogle} aria-label='Sign in'>
@@ -116,6 +189,30 @@ function Header() {
             >
               <Search />
             </Button>
+
+            {isLoggedIn && workspaces.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='hidden max-w-[11rem] gap-1.5 md:inline-flex'
+                    title={`Current workspace: ${activeWs?.name || ''} — press W to switch`}
+                    aria-label={`Current workspace: ${activeWs?.name || ''}. Switch workspace`}
+                  >
+                    <span aria-hidden='true'>{activeWs?.emoji || '🗂️'}</span>
+                    <span className='truncate'>{activeWs?.name || 'Workspace'}</span>
+                    <ChevronDown className='size-3.5 shrink-0 opacity-60' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-56'>
+                  <DropdownMenuLabel className='text-xs font-normal text-muted-foreground'>
+                    Switch workspace
+                  </DropdownMenuLabel>
+                  {workspaceMenuItems}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             <Button
               variant='ghost'
@@ -177,6 +274,37 @@ function Header() {
                 <span aria-hidden='true'>👤</span> Profile
               </NavLink>
             </nav>
+
+            {isLoggedIn && workspaces.length > 0 && (
+              <div className='mt-3'>
+                <p className='px-3 pb-1 text-xs font-medium text-muted-foreground'>Workspaces</p>
+                <div className='flex flex-col gap-1'>
+                  {workspaces.map((ws) => (
+                    <button
+                      key={ws.id}
+                      type='button'
+                      onClick={() => switchWorkspace(ws.id)}
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors',
+                        ws.id === activeWorkspaceId
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                      )}
+                    >
+                      <span aria-hidden='true'>{ws.emoji}</span>
+                      <span className='truncate'>{ws.name}</span>
+                    </button>
+                  ))}
+                  <button
+                    type='button'
+                    onClick={() => { setDrawerOpen(false); openManager(false); }}
+                    className='flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
+                  >
+                    <LayoutGrid className='size-4' /> Manage workspaces…
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <SheetFooter>
@@ -189,7 +317,15 @@ function Header() {
               {theme ? <Moon /> : <Sun />}
               {theme ? 'Dark theme' : 'Light theme'}
             </Button>
-            {!isLoggedIn && (
+            {isLoggedIn ? (
+              <Button
+                variant='ghost'
+                className='justify-start gap-2 text-destructive hover:text-destructive'
+                onClick={() => { setDrawerOpen(false); signOutUser(); }}
+              >
+                <LogOut /> Sign out
+              </Button>
+            ) : (
               <Button onClick={() => { setDrawerOpen(false); signInWithGoogle(); }}>
                 <LogIn /> Sign in with Google
               </Button>
@@ -197,6 +333,8 @@ function Header() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <WorkspaceManager open={manageOpen} onOpenChange={setManageOpen} focusCreate={manageCreate} />
     </>
   )
 }

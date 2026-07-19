@@ -84,6 +84,8 @@ export const SHORTCUT_GROUPS = [
     title: 'Workspace',
     items: [
       { keys: ['1', '–', '8'], desc: 'Open the matching widget (Clock, To-Do, Notes, …)' },
+      { keys: ['W'], desc: 'Switch to the next workspace (Space)' },
+      { keys: ['Shift', 'W'], desc: 'Switch to the previous workspace' },
     ],
   },
 ];

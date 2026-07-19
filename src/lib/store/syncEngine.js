@@ -1,11 +1,17 @@
 // Per-store sync engine — the heart of the Desk Dazzle "kernel".
 //
 // Each store is one named slice of workspace state (notes, flashcards, …).
-// Every store is persisted the same way, at the root:
+// Every store is persisted the same way:
 //   • localStorage (`deskdazzle.<name>`) — instant first paint + offline truth
 //   • Firebase RTDB mirror at `users/<uid>/stores/<name>` when signed in
 //   • BroadcastChannel — live sync across this browser's open tabs
 //   • last-write-wins on a millisecond `updatedMs` stamp
+//
+// Each store is scoped to the active *workspace* (like a macOS Space): the
+// default workspace keeps the original un-prefixed keys so existing on-device
+// and cloud data carry over untouched, while any other workspace lives under an
+// isolated namespace (`deskdazzle.ws.<ws>.<name>` locally,
+// `users/<uid>/workspaces/<ws>/stores/<name>` remotely).
 //
 // The RTDB payload is `{ json: "<stringified value>", updatedMs }`. Stringifying
 // sidesteps RTDB's array/null coercion, so ANY JSON value round-trips losslessly.
@@ -14,24 +20,37 @@ import { ref, onValue, update } from 'firebase/database';
 import { rtdb } from '../../firebaseConfig';
 import { bus, TAB_ID } from '../broadcast';
 
-const keyOf = (name) => `deskdazzle.${name}`;
-const metaOf = (name) => `deskdazzle.${name}.meta`;
+export const DEFAULT_WORKSPACE = 'default';
+
+// The default workspace maps to the legacy (un-prefixed) locations for backward
+// compatibility; every other workspace gets its own isolated namespace.
+const isDefault = (ws) => !ws || ws === DEFAULT_WORKSPACE;
+const localKeyOf = (ws, name) =>
+  isDefault(ws) ? `deskdazzle.${name}` : `deskdazzle.ws.${ws}.${name}`;
+const remotePathOf = (ws, uid, name) =>
+  isDefault(ws)
+    ? `users/${uid}/stores/${name}`
+    : `users/${uid}/workspaces/${ws}/stores/${name}`;
+
 const WRITE_DEBOUNCE_MS = 600;
 
 export class SyncedStore {
-  constructor(name, initial) {
+  constructor(name, initial, workspaceId = DEFAULT_WORKSPACE) {
     this.name = name;
     this.initial = initial;
+    this.workspaceId = workspaceId;
     this.subs = new Set();
     this.uid = null;
     this.detach = null;
     this.timer = null;
+    this._localKey = localKeyOf(workspaceId, name);
+    this._metaKey = `${this._localKey}.meta`;
     this.value = this._readLocal();
     this.updatedMs = this._readMeta();
 
     // Another tab mutated the same store → adopt its localStorage value.
     this.offBus = bus.on((msg) => {
-      if (msg.kind === 'data-changed' && msg.store === keyOf(this.name) && msg.tabId !== TAB_ID) {
+      if (msg.kind === 'data-changed' && msg.store === this._localKey && msg.tabId !== TAB_ID) {
         this._reloadLocal();
       }
     });
@@ -39,7 +58,7 @@ export class SyncedStore {
 
   _readLocal() {
     try {
-      const raw = window.localStorage.getItem(keyOf(this.name));
+      const raw = window.localStorage.getItem(this._localKey);
       return raw !== null ? JSON.parse(raw) : this.initial;
     } catch {
       return this.initial;
@@ -48,7 +67,7 @@ export class SyncedStore {
 
   _readMeta() {
     try {
-      return Number(window.localStorage.getItem(metaOf(this.name))) || 0;
+      return Number(window.localStorage.getItem(this._metaKey)) || 0;
     } catch {
       return 0;
     }
@@ -56,8 +75,8 @@ export class SyncedStore {
 
   _writeLocal(value, updatedMs) {
     try {
-      window.localStorage.setItem(keyOf(this.name), JSON.stringify(value));
-      window.localStorage.setItem(metaOf(this.name), String(updatedMs));
+      window.localStorage.setItem(this._localKey, JSON.stringify(value));
+      window.localStorage.setItem(this._metaKey, String(updatedMs));
     } catch {
       // ignore quota / availability errors
     }
@@ -85,7 +104,7 @@ export class SyncedStore {
     this.value = value;
     this.updatedMs = Date.now();
     this._writeLocal(value, this.updatedMs);
-    bus.dataChanged(keyOf(this.name));
+    bus.dataChanged(this._localKey);
     this._scheduleRemoteWrite();
     this._emit();
   };
@@ -99,7 +118,7 @@ export class SyncedStore {
   _flush() {
     this.timer = null;
     if (!this.uid) return;
-    update(ref(rtdb, `users/${this.uid}/stores/${this.name}`), {
+    update(ref(rtdb, remotePathOf(this.workspaceId, this.uid, this.name)), {
       json: JSON.stringify(this.value),
       updatedMs: this.updatedMs,
     }).catch(() => {});
@@ -120,7 +139,7 @@ export class SyncedStore {
     this.uid = uid;
     if (!uid) return;
 
-    const r = ref(rtdb, `users/${uid}/stores/${this.name}`);
+    const r = ref(rtdb, remotePathOf(this.workspaceId, uid, this.name));
     // onValue (modular SDK) returns its own unsubscribe function.
     this.detach = onValue(r, (snap) => {
       const val = snap.val();

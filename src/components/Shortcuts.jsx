@@ -26,7 +26,7 @@ function isTyping() {
 }
 
 function Shortcuts() {
-  const { setTheme } = useContext(ThemeContext);
+  const { setTheme, workspaces = [], activeWorkspaceId, switchWorkspace } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -85,11 +85,25 @@ function Shortcuts() {
       return;
     }
 
+    // W / Shift+W — cycle to the next / previous workspace (Space). With two
+    // workspaces this is a straight toggle between them.
+    if (e.key === 'w' || e.key === 'W') {
+      if (workspaces.length > 1 && switchWorkspace) {
+        e.preventDefault();
+        const dir = e.key === 'W' ? -1 : 1;
+        const idx = workspaces.findIndex((w) => w.id === activeWorkspaceId);
+        const from = idx < 0 ? 0 : idx;
+        const next = workspaces[(from + dir + workspaces.length) % workspaces.length];
+        if (next && next.id !== activeWorkspaceId) switchWorkspace(next.id);
+      }
+      return;
+    }
+
     if (e.key === '?') {
       e.preventDefault();
       setHelpOpen((v) => !v);
     }
-  }, [navigate, paletteOpen, setTheme]);
+  }, [navigate, paletteOpen, setTheme, workspaces, activeWorkspaceId, switchWorkspace]);
 
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown);

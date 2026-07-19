@@ -6,7 +6,14 @@ import { cn } from '@/lib/utils'
 // Drag + resize are implemented with native pointer events (no external
 // dependency) so it works reliably on React 19.
 function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMaximize, onChange }) {
-  const [geo, setGeo] = useState({ x: win.x, y: win.y, width: win.width, height: win.height });
+  // Never render (or persist) a window smaller than its widget's safe area, so
+  // layouts saved under an older, smaller floor snap up instead of cropping.
+  const minW = meta.minW ?? 240;
+  const minH = meta.minH ?? 190;
+  const [geo, setGeo] = useState({
+    x: win.x, y: win.y,
+    width: Math.max(win.width, minW), height: Math.max(win.height, minH),
+  });
   const rootRef = useRef(null);
   const drag = useRef(null);
   const dragging = useRef(false);
@@ -15,9 +22,12 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
   // externally (e.g. a layout loaded from Firestore), but never mid-drag.
   useEffect(() => {
     if (!dragging.current) {
-      setGeo({ x: win.x, y: win.y, width: win.width, height: win.height });
+      setGeo({
+        x: win.x, y: win.y,
+        width: Math.max(win.width, minW), height: Math.max(win.height, minH),
+      });
     }
-  }, [win.x, win.y, win.width, win.height]);
+  }, [win.x, win.y, win.width, win.height, minW, minH]);
 
   if (win.minimized) return null;
 
@@ -67,8 +77,9 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
   };
   const onResizeMove = (e) => {
     if (!drag.current) return;
-    const width = Math.max(240, drag.current.ow + (e.clientX - drag.current.px));
-    const height = Math.max(190, drag.current.oh + (e.clientY - drag.current.py));
+    // Clamp to the widget's "safe area" so its content can never be cropped.
+    const width = Math.max(minW, drag.current.ow + (e.clientX - drag.current.px));
+    const height = Math.max(minH, drag.current.oh + (e.clientY - drag.current.py));
     setGeo((g) => ({ ...g, width, height }));
   };
   const onResizeUp = (e) => {

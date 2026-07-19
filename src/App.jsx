@@ -27,11 +27,13 @@ import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, trackEvent } from './firebaseConfig';
 import { useUserData } from './hooks/useUserData';
+import { useWorkspaces } from './lib/store/useWorkspaces';
 import Profile from './pages/Profile';
 import Calculator from './pages/Calculator';
 import Donate from './pages/Donate';
 import Docs from './pages/Docs';
 import Shortcuts from './components/Shortcuts';
+import Splash from './components/Splash';
 import SettingsRuntime from './components/SettingsRuntime';
 import Settings from './pages/Settings';
 import { WorkspaceProvider } from './lib/store/WorkspaceProvider';
@@ -56,19 +58,45 @@ function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  // Whether onAuthStateChanged has fired at least once (auth resolved).
+  const [authReady, setAuthReady] = useState(false);
 
   // Auth state is the single source of truth for who's signed in.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoggedIn(!!currentUser);
+      setAuthReady(true);
     });
     return () => unsubscribe();
   }, []);
 
+  // Workspaces ("Spaces") give per-workspace data isolation. The active
+  // workspace scopes the desktop layout and every app's data.
+  const {
+    workspaces,
+    activeWorkspaceId,
+    switchWorkspace,
+    createWorkspace,
+    renameWorkspace,
+    deleteWorkspace,
+  } = useWorkspaces(user);
+
   // All per-user state (profile/theme/todos/desktop) is loaded and persisted
-  // through one shared Realtime Database listener + debounced writer.
-  const { theme, setTheme, todos, setTodos, desktop, setDesktop, projects, setProjects, profile } = useUserData(user);
+  // through one shared Realtime Database listener + debounced writer, scoped to
+  // the active workspace.
+  const { theme, setTheme, todos, setTodos, desktop, setDesktop, projects, setProjects, profile, hydrated } = useUserData(user, activeWorkspaceId);
+
+  // Splash cover: keep the screen covered until auth has resolved AND (for a
+  // signed-in user) the first data snapshot has applied — so theme/layout never
+  // visibly flip in. A hard timeout guarantees it never waits forever.
+  const [splashTimedOut, setSplashTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSplashTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  const ready = authReady && (!user || hydrated);
+  const showSplash = !ready && !splashTimedOut;
 
   // Tailwind's `dark:` variant (and portaled shadcn overlays rendered on
   // document.body) key off a `.dark` class on <html>. We wrap the switch in a
@@ -94,14 +122,22 @@ function App() {
   // Memoize the store so consumers only re-render when a value actually
   // changes, not on every App render.
   const store = useMemo(
-    () => ({ theme, setTheme, isLoggedIn, setIsLoggedIn, user, todos, setTodos, desktop, setDesktop, projects, setProjects, profile }),
-    [theme, setTheme, isLoggedIn, user, todos, setTodos, desktop, setDesktop, projects, setProjects, profile]
+    () => ({
+      theme, setTheme, isLoggedIn, setIsLoggedIn, user, todos, setTodos,
+      desktop, setDesktop, projects, setProjects, profile,
+      workspaces, activeWorkspaceId, switchWorkspace, createWorkspace,
+      renameWorkspace, deleteWorkspace,
+    }),
+    [theme, setTheme, isLoggedIn, user, todos, setTodos, desktop, setDesktop,
+      projects, setProjects, profile, workspaces, activeWorkspaceId,
+      switchWorkspace, createWorkspace, renameWorkspace, deleteWorkspace]
   );
 
   return (
     <ThemeContext.Provider value={store}>
-      <WorkspaceProvider user={user}>
+      <WorkspaceProvider user={user} workspaceId={activeWorkspaceId}>
       <TimeProvider>
+      <Splash show={showSplash} />
       <BrowserRouter>
         <RouteAnalytics />
         <Shortcuts />
