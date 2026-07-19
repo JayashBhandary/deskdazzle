@@ -96,7 +96,7 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
       onMouseDown={() => onFocus(win.id)}
     >
       <div
-        className="flex shrink-0 touch-none select-none items-center gap-3 border-b bg-muted/50 px-3 py-2"
+        className="relative flex shrink-0 touch-none select-none items-center gap-3 border-b bg-muted/50 px-3 py-2"
         onPointerDown={maximized ? undefined : onDragDown}
         onPointerMove={maximized ? undefined : onDragMove}
         onPointerUp={maximized ? undefined : onDragUp}
@@ -136,7 +136,7 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
             </button>
           )}
         </div>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+        <span className="pointer-events-none absolute inset-x-0 mx-auto max-w-[60%] truncate text-center text-sm font-semibold">
           {meta.icon} {meta.title}
         </span>
       </div>

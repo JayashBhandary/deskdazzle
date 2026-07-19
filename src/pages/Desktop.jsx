@@ -178,6 +178,16 @@ function Desktop() {
             </button>
           );
         })}
+
+        {/* Settings is a full page, not a widget — the dock icon links to it. */}
+        <Link
+          to="/settings"
+          title="Settings"
+          className="relative flex min-w-11 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground sm:min-w-14"
+        >
+          <span className="text-2xl leading-none sm:text-[26px]">⚙️</span>
+          <span className="whitespace-nowrap text-[10px] max-sm:hidden">Settings</span>
+        </Link>
       </div>
     </div>
   )

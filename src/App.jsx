@@ -32,6 +32,8 @@ import Calculator from './pages/Calculator';
 import Donate from './pages/Donate';
 import Docs from './pages/Docs';
 import Shortcuts from './components/Shortcuts';
+import SettingsRuntime from './components/SettingsRuntime';
+import Settings from './pages/Settings';
 import { WorkspaceProvider } from './lib/store/WorkspaceProvider';
 import { TimeProvider } from './lib/time/TimeProvider';
 
@@ -88,6 +90,7 @@ function App() {
       <BrowserRouter>
         <RouteAnalytics />
         <Shortcuts />
+        <SettingsRuntime />
         <div className={`app flex min-h-screen flex-col bg-background text-foreground ${theme ? "dark" : "light"}`}>
           <Link
             className="fixed bottom-4 right-4 z-40 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105"
@@ -102,6 +105,7 @@ function App() {
             <Route path='/home' element={<Home />} />
             <Route path='/apps' element={<Apps />} />
             <Route path='/profile' element={<Profile />} />
+            <Route path='/settings' element={<Settings />} />
             {/* Merged apps */}
             <Route path='/images' element={<Images />} />
             <Route path='/converters' element={<Converters />} />
