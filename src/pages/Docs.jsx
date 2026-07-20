@@ -110,8 +110,29 @@ function Docs() {
               Weather, Budget, Calendar and Color Picker. On phones each widget
               opens full-screen so it stays comfortable to use.
             </p>
+
+            <h3 className='pt-1 text-base font-medium'>Navigating the canvas</h3>
+            <p>
+              The Workspace is an infinite canvas — you have far more room than
+              one screen. On desktop and tablet you can:
+            </p>
+            <ul className='list-disc space-y-1 pl-5'>
+              <li><strong>Pan:</strong> drag any empty part of the desktop to move around the canvas.</li>
+              <li><strong>Zoom:</strong> use the <Kbd>–</Kbd> <Kbd>%</Kbd> <Kbd>+</Kbd> control in the bottom-right corner, or press <Kbd>⌘</Kbd> <Kbd>+</Kbd> / <Kbd>⌘</Kbd> <Kbd>−</Kbd> (<Kbd>Ctrl</Kbd> on Windows/Linux). The <Kbd>%</Kbd> label resets to 100%.</li>
+              <li><strong>Zoom to fit:</strong> the <Kbd>▢</Kbd> button (or <Kbd>⌘</Kbd>/<Kbd>Ctrl</Kbd> <Kbd>0</Kbd>) frames every open widget in view.</li>
+            </ul>
+            <Callout icon='🔍'>
+              Only DeskDazzle's own zoom scales the canvas — browser pinch-to-zoom is intentionally disabled on the Workspace so widgets stay crisp and put. Panning and zoom are desktop/tablet only.
+            </Callout>
+
+            <h3 className='pt-1 text-base font-medium'>Spaces &amp; the dock</h3>
+            <ul className='list-disc space-y-1 pl-5'>
+              <li><strong>Spaces:</strong> keep separate desktops (each with its own layout, theme and data). Switch with <Kbd>W</Kbd> / <Kbd>Shift</Kbd> <Kbd>W</Kbd>, or manage them from the header menu.</li>
+              <li><strong>Collapsible dock &amp; header:</strong> turn on <em>Collapsible dock</em> and/or <em>Collapsible header</em> in <Link className={LINK} to='/settings'>Settings → Appearance</Link> to auto-hide them and reveal on hover at the bottom / top edge — reclaiming the whole screen for the canvas.</li>
+            </ul>
+
             <Callout icon='💾'>
-              Your layout is saved automatically — to your account if you're signed in, otherwise to this device.
+              Your layout, zoom and pan position are saved automatically — to your account if you're signed in, otherwise to this device.
             </Callout>
           </section>
 

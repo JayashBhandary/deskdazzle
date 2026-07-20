@@ -151,5 +151,11 @@ export const DEFAULT_SETTINGS = {
   themeFollowSystem: false,
   scale: DEFAULT_SCALE,
   font: 'system',
+  // When true, the desktop dock hides itself and slides up only when the pointer
+  // reaches the bottom edge — giving widgets the full canvas height.
+  collapsibleDock: false,
+  // When true, the header auto-hides on the Workspace and slides down only when
+  // the pointer reaches the top edge — reclaiming its height for the canvas.
+  collapsibleHeader: false,
   colors: { light: {}, dark: {} },
 };

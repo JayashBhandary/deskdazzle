@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { FONTS } from '@/lib/settings/tokens';
 import ScaleSelector from './ScaleSelector';
 
@@ -69,6 +70,34 @@ export default function AppearancePanel({ settings, update }) {
             ))}
           </SelectContent>
         </Select>
+      </section>
+
+      <section className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <Label htmlFor="collapsible-dock">Collapsible dock</Label>
+          <span className="text-xs text-muted-foreground">
+            Hide the desktop dock and reveal it when the pointer nears the bottom edge.
+          </span>
+        </div>
+        <Switch
+          id="collapsible-dock"
+          checked={settings.collapsibleDock}
+          onCheckedChange={(collapsibleDock) => update({ collapsibleDock })}
+        />
+      </section>
+
+      <section className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <Label htmlFor="collapsible-header">Collapsible header</Label>
+          <span className="text-xs text-muted-foreground">
+            Auto-hide the header on the Workspace; reveal it when the pointer nears the top edge.
+          </span>
+        </div>
+        <Switch
+          id="collapsible-header"
+          checked={settings.collapsibleHeader}
+          onCheckedChange={(collapsibleHeader) => update({ collapsibleHeader })}
+        />
       </section>
     </div>
   );

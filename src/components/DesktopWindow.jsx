@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 // A draggable / resizable window hosting a single widget.
 // Drag + resize are implemented with native pointer events (no external
 // dependency) so it works reliably on React 19.
-function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMaximize, onChange }) {
+function DesktopWindow({ win, meta, isMobile, zoom = 1, onFocus, onClose, onMinimize, onMaximize, onChange }) {
   // Never render (or persist) a window smaller than its widget's safe area, so
   // layouts saved under an older, smaller floor snap up instead of cropping.
   const minW = meta.minW ?? 240;
@@ -34,14 +34,6 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
   const maximized = win.maximized || isMobile;
   const Body = meta.component;
 
-  const surfaceSize = () => {
-    const surface = rootRef.current?.parentElement;
-    return {
-      w: surface?.clientWidth ?? window.innerWidth,
-      h: surface?.clientHeight ?? window.innerHeight,
-    };
-  };
-
   // ----- Dragging (title bar) -----
   const onDragDown = (e) => {
     if (e.target.closest('[data-win-btn]')) return;
@@ -52,11 +44,12 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
   };
   const onDragMove = (e) => {
     if (!drag.current) return;
-    const { w, h } = surfaceSize();
-    let x = drag.current.ox + (e.clientX - drag.current.px);
-    let y = drag.current.oy + (e.clientY - drag.current.py);
-    x = Math.max(0, Math.min(x, w - geo.width));
-    y = Math.max(0, Math.min(y, h - 40));
+    // Canvas coordinates are unbounded (the desktop is an infinite, pannable
+    // surface), so the pointer delta maps straight through with no clamping —
+    // a window pushed off-screen is always reachable again by panning. Divide
+    // the screen-space delta by the zoom so a drag tracks the cursor 1:1.
+    const x = drag.current.ox + (e.clientX - drag.current.px) / zoom;
+    const y = drag.current.oy + (e.clientY - drag.current.py) / zoom;
     setGeo((g) => ({ ...g, x, y }));
   };
   const onDragUp = (e) => {
@@ -78,8 +71,9 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
   const onResizeMove = (e) => {
     if (!drag.current) return;
     // Clamp to the widget's "safe area" so its content can never be cropped.
-    const width = Math.max(minW, drag.current.ow + (e.clientX - drag.current.px));
-    const height = Math.max(minH, drag.current.oh + (e.clientY - drag.current.py));
+    // Screen-space delta is divided by zoom so the handle tracks the cursor.
+    const width = Math.max(minW, drag.current.ow + (e.clientX - drag.current.px) / zoom);
+    const height = Math.max(minH, drag.current.oh + (e.clientY - drag.current.py) / zoom);
     setGeo((g) => ({ ...g, width, height }));
   };
   const onResizeUp = (e) => {
@@ -90,6 +84,9 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
     setGeo((g) => { onChange(win.id, { width: g.width, height: g.height }); return g; });
   };
 
+  // Non-maximized windows live inside the transformed canvas layer, so they use
+  // raw canvas coordinates (the layer applies pan + zoom). Maximized windows are
+  // rendered outside the layer and simply fill the surface.
   const style = maximized
     ? { position: 'absolute', inset: 0, zIndex: win.z }
     : { position: 'absolute', left: geo.x, top: geo.y, width: geo.width, height: geo.height, zIndex: win.z };
@@ -152,7 +149,7 @@ function DesktopWindow({ win, meta, isMobile, onFocus, onClose, onMinimize, onMa
         </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="min-h-0 flex-1 select-text overflow-auto p-3">
         <Body />
       </div>
 

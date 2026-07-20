@@ -1,7 +1,10 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react'
+import React, { useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import { ThemeContext } from '../App';
 import DesktopWindow from '../components/DesktopWindow';
+import { Maximize, Minus, Plus } from 'lucide-react';
+import { useStore } from '../lib/store/WorkspaceProvider';
+import { useSettings } from '../lib/settings/useSettings';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -78,6 +81,149 @@ function Desktop() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // The workspace is a fixed-viewport surface (like a desktop OS) — the page
+  // itself must never scroll, or panning/widgets fight a scrollbar. Lock body
+  // scroll while mounted and restore it on the way out.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ----- Infinite canvas: pan + zoom -----
+  // The desktop is a pannable, zoomable surface: drag empty space to move around
+  // a large virtual area, and use the bottom-right control to zoom. The view
+  // {x, y, zoom} is persisted per workspace (its own synced store), so reopening
+  // a Space restores where you left the canvas. Windows store fixed *canvas*
+  // coordinates; the transformed layer applies pan + zoom.
+  const surfaceRef = useRef(null);
+  const [viewStore, setViewStore] = useStore('desktopPan', { x: 0, y: 0, zoom: 1 });
+  const readView = (v) => ({ x: v?.x || 0, y: v?.y || 0, zoom: v?.zoom || 1 });
+  const [view, setView] = useState(() => readView(viewStore));
+  const panDrag = useRef(null);
+  // Adopt the persisted/synced view (e.g. after a workspace switch), but never
+  // yank the canvas out from under an in-progress pan.
+  useEffect(() => {
+    if (!panDrag.current) setView(readView(viewStore));
+  }, [viewStore]);
+
+  const onPanDown = (e) => {
+    if (isMobile || e.button === 2) return; // no panning on mobile / right-click
+    e.preventDefault(); // don't start a native text selection while panning
+    panDrag.current = { px: e.clientX, py: e.clientY, ox: view.x, oy: view.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPanMove = (e) => {
+    if (!panDrag.current) return;
+    setView((v) => ({
+      ...v,
+      x: panDrag.current.ox + (e.clientX - panDrag.current.px),
+      y: panDrag.current.oy + (e.clientY - panDrag.current.py),
+    }));
+  };
+  const onPanUp = (e) => {
+    if (!panDrag.current) return;
+    panDrag.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    setView((v) => { setViewStore(v); return v; }); // commit final view once
+  };
+
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 2;
+  const ZOOM_STEP = 0.25;
+  // Zoom toward the viewport centre so content doesn't drift off-screen.
+  const zoomTo = useCallback((nextZoom) => {
+    setView((v) => {
+      const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(nextZoom * 100) / 100));
+      if (z === v.zoom) return v;
+      const rect = surfaceRef.current?.getBoundingClientRect();
+      const cx = rect ? rect.width / 2 : 0;
+      const cy = rect ? rect.height / 2 : 0;
+      const ratio = z / v.zoom;
+      const nv = { x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio, zoom: z };
+      setViewStore(nv);
+      return nv;
+    });
+  }, [setViewStore]);
+
+  // Zoom-to-fit: frame every open (non-minimised) floating window in view. With
+  // nothing open, recentre at 100%.
+  const fitView = useCallback(() => {
+    const rect = surfaceRef.current?.getBoundingClientRect();
+    const w = rect?.width || window.innerWidth;
+    const h = rect?.height || window.innerHeight;
+    const boxes = windows
+      .filter((win) => WIDGETS[win.type] && !win.minimized && !win.maximized)
+      .map((win) => {
+        const meta = WIDGETS[win.type];
+        return {
+          x: win.x, y: win.y,
+          w: Math.max(win.width, meta.minW ?? 240),
+          h: Math.max(win.height, meta.minH ?? 190),
+        };
+      });
+    if (!boxes.length) {
+      const nv = { x: 0, y: 0, zoom: 1 };
+      setView(nv); setViewStore(nv);
+      return;
+    }
+    const minX = Math.min(...boxes.map((b) => b.x));
+    const minY = Math.min(...boxes.map((b) => b.y));
+    const maxX = Math.max(...boxes.map((b) => b.x + b.w));
+    const maxY = Math.max(...boxes.map((b) => b.y + b.h));
+    const pad = 48;
+    const zoom = Math.min(
+      ZOOM_MAX,
+      Math.max(ZOOM_MIN, Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY))),
+    );
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const nv = { x: w / 2 - cx * zoom, y: h / 2 - cy * zoom, zoom };
+    setView(nv); setViewStore(nv);
+  }, [windows, setViewStore]);
+
+  // Keyboard: ⌘/Ctrl + +/-/0 drive OUR zoom (and pre-empt the browser's page
+  // zoom). Native pinch / ctrl-wheel zoom is suppressed below so only this
+  // system ever scales the canvas.
+  useEffect(() => {
+    if (isMobile) return undefined;
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomTo(view.zoom + ZOOM_STEP); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomTo(view.zoom - ZOOM_STEP); }
+      else if (e.key === '0') { e.preventDefault(); fitView(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobile, view.zoom, zoomTo, fitView]);
+
+  // Suppress native zoom on the workspace: trackpad pinch + ctrl-wheel arrive as
+  // wheel events with ctrlKey; Safari fires gesture* events. Block them so the
+  // page never zooms — only our control/shortcuts do.
+  useEffect(() => {
+    if (isMobile) return undefined;
+    const onWheel = (e) => { if (e.ctrlKey) e.preventDefault(); };
+    const onGesture = (e) => e.preventDefault();
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('gesturestart', onGesture);
+    window.addEventListener('gesturechange', onGesture);
+    window.addEventListener('gestureend', onGesture);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('gesturestart', onGesture);
+      window.removeEventListener('gesturechange', onGesture);
+      window.removeEventListener('gestureend', onGesture);
+    };
+  }, [isMobile]);
+
+  // ----- Collapsible dock -----
+  // Opt-in via Settings → Appearance. When on, the dock hides and slides up only
+  // while the pointer is at the bottom edge (or over the dock itself).
+  const { settings } = useSettings();
+  const collapsibleDock = settings.collapsibleDock;
+  const [dockShown, setDockShown] = useState(false);
+  const dockVisible = !collapsibleDock || dockShown;
 
   // Windows are multi-instance: a widget can have several windows open at once,
   // each with a unique id (decoupled from its `type`). Legacy layouts where
@@ -161,7 +307,7 @@ function Desktop() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-background pb-[120px] pt-[84px] text-foreground"
+      className="relative h-[calc(100vh-var(--header-h,3.5rem))] w-full select-none overflow-hidden bg-background text-foreground"
       onContextMenu={onRootContextMenu}
     >
       {isLoggedIn && workspaces.length > 1 && (
@@ -176,22 +322,64 @@ function Desktop() {
         </button>
       )}
 
-      <div className="relative h-[calc(100vh-204px)] min-h-[440px] w-full">
+      <div ref={surfaceRef} className="absolute inset-0 overflow-hidden">
+        {/* Empty canvas layer — catches drags on blank space to pan the surface.
+            Sits behind every window (z-0); windows carry z ≥ 1. */}
+        <div
+          className={cn(
+            'absolute inset-0 z-0',
+            !isMobile && ['touch-none', panDrag.current ? 'cursor-grabbing' : 'cursor-grab'],
+          )}
+          onPointerDown={onPanDown}
+          onPointerMove={onPanMove}
+          onPointerUp={onPanUp}
+          onPointerCancel={onPanUp}
+        />
+
         {visibleCount === 0 && (
-          <div className="absolute left-1/2 top-1/2 flex w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3.5 text-center">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 flex w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3.5 text-center">
             <h2 className="text-3xl font-bold">🖥️ Your workspace</h2>
             <p className="text-[15px] leading-relaxed text-muted-foreground">
-              Open widgets from the dock below. Drag the title bars to move them, drag edges to resize. Your layout is saved{isLoggedIn ? ' to your account' : ' on this device'}.
+              Open widgets from the dock below. Drag the title bars to move them, drag edges to resize, drag the empty desktop to pan around. Your layout is saved{isLoggedIn ? ' to your account' : ' on this device'}.
             </p>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="pointer-events-auto">
               <Link to="/apps">Browse all tools →</Link>
             </Button>
           </div>
         )}
 
+        {/* Transformed canvas layer: applies pan + zoom to every floating window.
+            It's zero-sized (only its absolutely-positioned children paint), so
+            empty-space clicks fall through to the pan layer below. */}
+        <div
+          className="absolute left-0 top-0 origin-top-left"
+          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${isMobile ? 1 : view.zoom})` }}
+        >
+          {windows.map((win) => {
+            const meta = WIDGETS[win.type];
+            if (!meta || win.minimized || win.maximized || isMobile) return null;
+            return (
+              <DesktopWindow
+                key={win.id}
+                win={win}
+                meta={meta}
+                isMobile={false}
+                zoom={view.zoom}
+                onFocus={focus}
+                onClose={close}
+                onMinimize={minimize}
+                onMaximize={maximize}
+                onChange={change}
+              />
+            );
+          })}
+        </div>
+
+        {/* Maximized (and all mobile) windows fill the surface — rendered outside
+            the transform so they ignore pan/zoom. */}
         {windows.map((win) => {
           const meta = WIDGETS[win.type];
-          if (!meta) return null;
+          if (!meta || win.minimized || !(win.maximized || isMobile)) return null;
           return (
             <DesktopWindow
               key={win.id}
@@ -208,7 +396,68 @@ function Desktop() {
         })}
       </div>
 
-      <div className="fixed bottom-4 left-1/2 z-[5000] flex max-w-[94vw] -translate-x-1/2 gap-1.5 overflow-x-auto rounded-3xl border bg-popover/80 px-3.5 py-2.5 text-popover-foreground shadow-lg backdrop-blur-md">
+      {/* Zoom control — desktop & tablet only (panning/zoom disabled on mobile). */}
+      {!isMobile && (
+        <div className="fixed bottom-4 right-4 z-[5000] flex items-center gap-0.5 rounded-full border bg-popover/80 p-1 text-popover-foreground shadow-lg backdrop-blur-md">
+          <button
+            type="button"
+            title="Zoom out (⌘/Ctrl + −)"
+            aria-label="Zoom out"
+            onClick={() => zoomTo(view.zoom - ZOOM_STEP)}
+            disabled={view.zoom <= ZOOM_MIN}
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-40"
+          >
+            <Minus className="size-4" />
+          </button>
+          <button
+            type="button"
+            title="Reset zoom to 100%"
+            aria-label="Reset zoom"
+            onClick={() => zoomTo(1)}
+            className="min-w-12 rounded-full px-1 text-center text-xs font-medium tabular-nums transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            {Math.round(view.zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            title="Zoom in (⌘/Ctrl + +)"
+            aria-label="Zoom in"
+            onClick={() => zoomTo(view.zoom + ZOOM_STEP)}
+            disabled={view.zoom >= ZOOM_MAX}
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-40"
+          >
+            <Plus className="size-4" />
+          </button>
+          <div className="mx-0.5 h-5 w-px bg-border" />
+          <button
+            type="button"
+            title="Zoom to fit (⌘/Ctrl + 0)"
+            aria-label="Zoom to fit"
+            onClick={fitView}
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Maximize className="size-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Bottom hover strip: with a collapsed dock, pointing here slides it up. */}
+      {collapsibleDock && !dockVisible && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[4998] h-6"
+          onMouseEnter={() => setDockShown(true)}
+          onPointerEnter={() => setDockShown(true)}
+        />
+      )}
+
+      <div
+        onMouseEnter={collapsibleDock ? () => setDockShown(true) : undefined}
+        onMouseLeave={collapsibleDock ? () => setDockShown(false) : undefined}
+        className={cn(
+          'fixed bottom-4 left-1/2 z-[5000] flex max-w-[94vw] -translate-x-1/2 gap-1.5 overflow-x-auto rounded-3xl border bg-popover/80 px-3.5 py-2.5 text-popover-foreground shadow-lg backdrop-blur-md transition-[transform,opacity] duration-300 ease-out',
+          !dockVisible && 'pointer-events-none translate-y-[160%] opacity-0',
+        )}
+      >
         {ORDER.map((type) => {
           const meta = WIDGETS[type];
           const mine = windows.filter((w) => w.type === type);

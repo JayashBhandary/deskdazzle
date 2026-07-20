@@ -86,6 +86,9 @@ export const SHORTCUT_GROUPS = [
       { keys: ['1', '–', '8'], desc: 'Open the matching widget (Clock, To-Do, Notes, …)' },
       { keys: ['W'], desc: 'Switch to the next workspace (Space)' },
       { keys: ['Shift', 'W'], desc: 'Switch to the previous workspace' },
+      { keys: ['⌘', '+'], alt: ['Ctrl', '+'], desc: 'Zoom in the canvas' },
+      { keys: ['⌘', '−'], alt: ['Ctrl', '−'], desc: 'Zoom out the canvas' },
+      { keys: ['⌘', '0'], alt: ['Ctrl', '0'], desc: 'Zoom to fit all open widgets' },
     ],
   },
 ];

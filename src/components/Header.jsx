@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { ThemeContext } from '../App';
+import { useSettings } from '../lib/settings/useSettings';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { signInWithGoogle, signOutUser } from '../auth';
 import { NAV_LINKS } from '../toolsData';
@@ -57,9 +58,38 @@ function Header() {
   // When true, the manager dialog opens with the "create" field focused.
   const [manageCreate, setManageCreate] = useState(false);
   const location = useLocation();
+  const { settings } = useSettings();
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
+  // ----- Collapsible header (Workspace only, desktop/tablet) -----
+  // Auto-hide the header on the Workspace so widgets get its height back. We
+  // publish the reserved header height as a CSS var (`--header-h`) that the
+  // Workspace consumes, and flip the header from sticky (reserves space) to
+  // fixed (overlays) while auto-hide is active.
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
+  );
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const autoHide = location.pathname === '/' && settings.collapsibleHeader && isDesktop;
+  const [headerRevealed, setHeaderRevealed] = useState(false);
+  const headerShown = !autoHide || headerRevealed;
+  // Collapse the header a moment after the pointer leaves it.
+  useEffect(() => {
+    if (!autoHide) setHeaderRevealed(false);
+  }, [autoHide]);
+  // Reserve 0 height while auto-hiding (header overlays); otherwise the default.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (autoHide) root.style.setProperty('--header-h', '0px');
+    else root.style.removeProperty('--header-h');
+    return () => root.style.removeProperty('--header-h');
+  }, [autoHide]);
 
   const handleThemeChange = () => setTheme(theme === false ? true : false);
 
@@ -142,7 +172,24 @@ function Header() {
 
   return (
     <>
-      <header className='sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+      {/* Top reveal strip — pointing here slides the hidden header back down. */}
+      {autoHide && !headerShown && (
+        <div
+          className='fixed inset-x-0 top-0 z-50 h-4'
+          onMouseEnter={() => setHeaderRevealed(true)}
+          onPointerEnter={() => setHeaderRevealed(true)}
+        />
+      )}
+
+      <header
+        onMouseEnter={autoHide ? () => setHeaderRevealed(true) : undefined}
+        onMouseLeave={autoHide ? () => setHeaderRevealed(false) : undefined}
+        className={cn(
+          'top-0 z-40 w-full border-b bg-background/80 backdrop-blur transition-transform duration-300 ease-out supports-[backdrop-filter]:bg-background/60',
+          autoHide ? 'fixed' : 'sticky',
+          autoHide && !headerShown && '-translate-y-full',
+        )}
+      >
         <div className='mx-auto flex h-14 max-w-6xl items-center gap-4 px-4'>
           <Link
             to='/'

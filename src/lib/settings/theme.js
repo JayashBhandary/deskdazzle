@@ -84,6 +84,8 @@ export function normalizeSettings(raw) {
     themeFollowSystem: !!s.themeFollowSystem,
     scale: Number(s.scale) > 0 ? Number(s.scale) : DEFAULT_SETTINGS.scale,
     font: typeof s.font === 'string' ? s.font : DEFAULT_SETTINGS.font,
+    collapsibleDock: !!s.collapsibleDock,
+    collapsibleHeader: !!s.collapsibleHeader,
     colors: {
       light: sanitizeColors(s.colors?.light),
       dark: sanitizeColors(s.colors?.dark),
@@ -103,9 +105,23 @@ function sanitizeColors(obj) {
 
 export const SETTINGS_EXPORT_KIND = 'deskdazzle-theme';
 
+// Export a COMPLETE settings blob: every colour token is resolved (user override
+// falling back to the built-in default) for both light and dark, so the file is
+// a full, self-contained palette rather than just the tweaked tokens.
 export function exportSettings(settings) {
+  const s = normalizeSettings(settings);
+  const fullMode = (mode) => {
+    const base = mode === 'dark' ? DEFAULT_DARK : DEFAULT_LIGHT;
+    const out = {};
+    for (const token of Object.keys(base)) out[token] = resolveColor(s, mode, token);
+    return out;
+  };
+  const complete = {
+    ...s,
+    colors: { light: fullMode('light'), dark: fullMode('dark') },
+  };
   return JSON.stringify(
-    { kind: SETTINGS_EXPORT_KIND, version: 1, settings: normalizeSettings(settings) },
+    { kind: SETTINGS_EXPORT_KIND, version: 1, settings: complete },
     null,
     2,
   );

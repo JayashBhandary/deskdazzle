@@ -44,6 +44,15 @@ import { TimeProvider } from './lib/time/TimeProvider';
 
 export const ThemeContext = createContext();
 
+// The workspace ("/") is a full-bleed OS-style surface: its floating widgets and
+// dock sit at the bottom, so a page footer just collides with them. Hide it there;
+// every other route keeps the footer.
+function AppFooter() {
+  const { pathname } = useLocation();
+  if (pathname === '/') return null;
+  return <Footer />;
+}
+
 // Logs a page_view to Analytics on every route change. Must live inside the
 // router so it can read the current location.
 function RouteAnalytics() {
@@ -188,7 +197,7 @@ function App() {
             <Route path='/pomodoro' element={<Navigate to='/clock?tab=focus' replace />} />
           </Routes>
           </main>
-          <Footer/>
+          <AppFooter/>
           <Toaster theme={theme ? 'dark' : 'light'} />
         </div>
       </BrowserRouter>
