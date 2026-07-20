@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
-import { Eye, Link2, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Link2, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '../../lib/store/WorkspaceProvider';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -117,11 +118,58 @@ function NotesApp() {
   const [hits, setHits] = useState(null); // null = no active search
   const [html, setHtml] = useState('');
   const [quick, setQuick] = useState(''); // narrow/widget quick-capture
-  // Reading zoom for the compact/widget note viewer — a small widget crops the
-  // text, so let the reader scale it up (or down) independently of UI scale.
+  // Reading zoom for the note viewer — a small widget crops the text, so let the
+  // reader scale it up (or down) independently of UI scale.
   const [readScale, setReadScale] = useState(1);
   const bumpScale = (delta) =>
     setReadScale((s) => Math.min(2, Math.max(0.7, Math.round((s + delta) * 10) / 10)));
+
+  // Apple-Notes-style layout: a collapsible sidebar (the note list) next to the
+  // note detail. `narrow` (container < @md) switches the two to mutually
+  // exclusive views — select a note → list collapses to the note; a toggle icon
+  // brings the list back. On a wide container both show side by side and the
+  // toggle simply hides/reveals the sidebar for a full-width note.
+  const rootRef = useRef(null);
+  const [narrow, setNarrow] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([entry]) => setNarrow(entry.contentRect.width < 448));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Draggable separator: the sidebar width is resizable on the wide layout and
+  // remembered on this device (a layout pref — kept local, not cloud-synced).
+  const SIDEBAR_W_KEY = 'deskdazzle.notesSidebarWidth';
+  const clampW = (w) => Math.min(480, Math.max(200, Math.round(w)));
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const v = Number(window.localStorage.getItem(SIDEBAR_W_KEY));
+      if (Number.isFinite(v) && v > 0) return clampW(v);
+    } catch { /* ignore */ }
+    return 290;
+  });
+  const sepDrag = useRef(null);
+  const onSepDown = (e) => {
+    sepDrag.current = { x: e.clientX, w: sidebarWidth };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  const onSepMove = (e) => {
+    if (!sepDrag.current) return;
+    setSidebarWidth(clampW(sepDrag.current.w + (e.clientX - sepDrag.current.x)));
+  };
+  const onSepUp = (e) => {
+    if (!sepDrag.current) return;
+    sepDrag.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    setSidebarWidth((w) => {
+      try { window.localStorage.setItem(SIDEBAR_W_KEY, String(w)); } catch { /* ignore */ }
+      return w;
+    });
+  };
 
   const selected = notes.find((n) => n.id === selectedId) || null;
 
@@ -201,6 +249,7 @@ function NotesApp() {
   const openNote = (id) => {
     setSelectedId(id);
     setMode('preview');
+    if (narrow) setSidebarOpen(false); // push to the note; the list slides away
   };
 
   const startEdit = (note) => {
@@ -217,6 +266,7 @@ function NotesApp() {
     setSelectedId(null);
     setDraft(EMPTY_DRAFT);
     setMode('edit');
+    if (narrow) setSidebarOpen(false);
   };
 
   const save = () => {
@@ -264,6 +314,7 @@ function NotesApp() {
     setSelectedId(now);
     setDraft({ title, body: '', tags: '' });
     setMode('edit');
+    if (narrow) setSidebarOpen(false);
     toast.success(`Created "${title}"`);
   };
 
@@ -294,11 +345,21 @@ function NotesApp() {
     }
   };
 
+  // ---- Apple-Notes-style layout routing ----
+  const hasDetail = mode === 'edit' || !!selected;
+  // Narrow: sidebar and detail are mutually exclusive. Wide: sidebar is a
+  // collapsible column beside an always-present detail pane.
+  const showDetail = narrow ? hasDetail && !sidebarOpen : true;
+  const showSidebar = narrow ? !showDetail : sidebarOpen;
+
   return (
-    <div className="@container relative flex h-full min-h-0 flex-col">
-      <div className="grid min-h-0 flex-1 gap-4 @md:grid-cols-[minmax(240px,340px)_1fr] @md:gap-6">
-        {/* Note list + capture */}
-        <div className="flex min-h-0 flex-col gap-3">
+    <div ref={rootRef} className="@container flex h-full min-h-0">
+      {/* Sidebar — the note list */}
+      {showSidebar && (
+        <aside
+          className={cn('flex min-h-0 flex-col gap-3', narrow ? 'w-full' : 'shrink-0 pr-1')}
+          style={narrow ? undefined : { width: sidebarWidth }}
+        >
           <div className="flex gap-2">
             <Input
               value={query}
@@ -306,30 +367,32 @@ function NotesApp() {
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Search notes"
             />
-            <Button className="hidden shrink-0 @md:inline-flex" size="sm" onClick={newNote}>
-              <Plus /> New note
+            <Button className="shrink-0 gap-1.5" size="sm" onClick={newNote} aria-label="New note">
+              <Plus /> {!narrow && <span>New</span>}
             </Button>
           </div>
 
-          {/* Quick capture — widget width only (full editor takes over at @md). */}
-          <div className="flex gap-1.5 @md:hidden">
-            <Textarea
-              className="min-h-0 min-w-0 flex-1 resize-none"
-              rows={2}
-              value={quick}
-              placeholder="Quick note..."
-              onChange={(e) => setQuick(e.target.value)}
-              aria-label="Quick note"
-            />
-            <Button
-              size="icon"
-              className="size-8 shrink-0 self-start"
-              onClick={quickAdd}
-              aria-label="Add note"
-            >
-              <Plus />
-            </Button>
-          </div>
+          {/* Quick capture — narrow only (the detail editor covers wide). */}
+          {narrow && (
+            <div className="flex gap-1.5">
+              <Textarea
+                className="min-h-0 min-w-0 flex-1 resize-none"
+                rows={2}
+                value={quick}
+                placeholder="Quick note..."
+                onChange={(e) => setQuick(e.target.value)}
+                aria-label="Quick note"
+              />
+              <Button
+                size="icon"
+                className="size-8 shrink-0 self-start"
+                onClick={quickAdd}
+                aria-label="Add note"
+              >
+                <Plus />
+              </Button>
+            </div>
+          )}
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {visibleNotes.length === 0 ? (
@@ -397,13 +460,97 @@ function NotesApp() {
               ))
             )}
           </div>
-        </div>
+        </aside>
+      )}
 
-        {/* Editor / preview — page width only. */}
-        <div className="hidden min-h-0 min-w-0 overflow-y-auto @md:block">
-          {mode === 'edit' ? (
-            <Card>
-              <CardContent className="space-y-3">
+      {/* Draggable separator — resize the sidebar (wide layout only) */}
+      {!narrow && showSidebar && showDetail && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize notes list"
+          onPointerDown={onSepDown}
+          onPointerMove={onSepMove}
+          onPointerUp={onSepUp}
+          onPointerCancel={onSepUp}
+          className="group relative w-2 shrink-0 cursor-col-resize touch-none select-none"
+        >
+          <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-primary group-active:bg-primary" />
+        </div>
+      )}
+
+      {/* Detail — editor / preview / placeholder, with the sidebar toggle */}
+      {showDetail && (
+        <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !narrow && showSidebar && 'pl-3')}>
+          <div className="mb-2 flex shrink-0 items-center gap-2 border-b pb-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              onClick={() => setSidebarOpen((o) => !o)}
+              title={showSidebar ? 'Hide notes list' : 'Show notes list'}
+              aria-label={showSidebar ? 'Hide notes list' : 'Show notes list'}
+            >
+              {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
+            </Button>
+
+            {mode === 'edit' ? (
+              <>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {selected ? 'Edit note' : 'New note'}
+                </span>
+                <Button size="sm" onClick={save} disabled={!draft.title.trim() && !draft.body.trim()}>
+                  <Save /> Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={cancelEdit}>
+                  <X /> Cancel
+                </Button>
+              </>
+            ) : selected ? (
+              <>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-sm font-semibold">{selected.title || 'Untitled'}</h2>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Updated {relativeTime(noteUpdatedMs(selected))}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => bumpScale(-0.1)}
+                    disabled={readScale <= 0.7}
+                    aria-label="Decrease text size"
+                  >
+                    <ZoomOut />
+                  </Button>
+                  <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">
+                    {Math.round(readScale * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => bumpScale(0.1)}
+                    disabled={readScale >= 2}
+                    aria-label="Increase text size"
+                  >
+                    <ZoomIn />
+                  </Button>
+                  <Button size="sm" variant="outline" className="ml-1" onClick={() => startEdit(selected)}>
+                    <Pencil /> Edit
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <span className="text-sm font-medium text-muted-foreground">Notes</span>
+            )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            {mode === 'edit' ? (
+              <div className="space-y-3">
                 <Input
                   value={draft.title}
                   placeholder="Title"
@@ -424,43 +571,16 @@ function NotesApp() {
                   onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
                   aria-label="Tags (comma separated)"
                 />
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={save} disabled={!draft.title.trim() && !draft.body.trim()}>
-                    <Save /> Save
-                  </Button>
-                  <Button variant="outline" onClick={cancelEdit}>
-                    <X /> Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : selected ? (
-            <Card>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="text-xl font-semibold tracking-tight">
-                      {selected.title || 'Untitled'}
-                    </h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>Updated {relativeTime(noteUpdatedMs(selected))}</span>
-                      {(selected.tags || []).map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+              </div>
+            ) : selected ? (
+              <div style={{ zoom: readScale }}>
+                {(selected.tags || []).length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {selected.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">{tag}</Badge>
+                    ))}
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button variant="secondary" size="sm" disabled>
-                      <Eye /> Preview
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => startEdit(selected)}>
-                      <Pencil /> Edit
-                    </Button>
-                  </div>
-                </div>
-
+                )}
                 {html ? (
                   <div className={PROSE_CLASSES} onClick={onPreviewClick} dangerouslySetInnerHTML={{ __html: html }} />
                 ) : (
@@ -470,118 +590,29 @@ function NotesApp() {
                 )}
 
                 {backlinks.length > 0 && (
-                  <div className="border-t pt-3">
+                  <div className="mt-4 border-t pt-3">
                     <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
                       <Link2 className="size-3.5" /> Linked from
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {backlinks.map((n) => (
-                        <Button
-                          key={n.id}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openNote(n.id)}
-                        >
+                        <Button key={n.id} variant="outline" size="sm" onClick={() => openNote(n.id)}>
                           {n.title || 'Untitled'}
                         </Button>
                       ))}
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="py-16 text-center text-muted-foreground">
-                Select a note on the left, or create a new one.
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Compact note viewer — a dialog scoped INSIDE the widget (not portaled to
-          the main window). Shown only below @md, where the side preview pane is
-          hidden, so a small widget / mobile can still read the full note. */}
-      {selected && mode === 'preview' && (
-        <div className="absolute inset-0 z-20 flex flex-col rounded-lg border bg-background @md:hidden">
-          <div className="flex items-center gap-2 border-b px-3 py-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate text-sm font-semibold">{selected.title || 'Untitled'}</h2>
-              <p className="truncate text-xs text-muted-foreground">
-                Updated {relativeTime(noteUpdatedMs(selected))}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={() => bumpScale(-0.1)}
-                disabled={readScale <= 0.7}
-                aria-label="Decrease text size"
-              >
-                <ZoomOut />
-              </Button>
-              <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">
-                {Math.round(readScale * 100)}%
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={() => bumpScale(0.1)}
-                disabled={readScale >= 2}
-                aria-label="Increase text size"
-              >
-                <ZoomIn />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={() => setSelectedId(null)}
-                aria-label="Close note"
-              >
-                <X />
-              </Button>
-            </div>
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                {showSidebar
+                  ? 'Select a note, or create a new one.'
+                  : 'Select a note — tap the sidebar icon to see all notes.'}
+              </div>
+            )}
           </div>
-
-          <div className="min-h-0 flex-1 overflow-auto p-3">
-            <div style={{ zoom: readScale }}>
-              {(selected.tags || []).length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1">
-                  {selected.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                  ))}
-                </div>
-              )}
-              {html ? (
-                <div className={PROSE_CLASSES} onClick={onPreviewClick} dangerouslySetInnerHTML={{ __html: html }} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {(selected.body || '').trim() ? 'Rendering…' : 'This note is empty.'}
-                </p>
-              )}
-
-              {backlinks.length > 0 && (
-                <div className="mt-4 border-t pt-3">
-                  <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    <Link2 className="size-3.5" /> Linked from
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {backlinks.map((n) => (
-                      <Button key={n.id} variant="outline" size="sm" onClick={() => openNote(n.id)}>
-                        {n.title || 'Untitled'}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        </section>
       )}
     </div>
   );

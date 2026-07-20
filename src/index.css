@@ -100,6 +100,21 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Make native form controls (date/number spinners, range, checkboxes, radios,
+     the calendar/clock picker icons, and default scrollbars) follow the active
+     theme instead of rendering in the browser's default light UI. */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'],
+  progress {
+    accent-color: var(--primary);
+  }
   html,
   body,
   #root {
