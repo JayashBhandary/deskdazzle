@@ -26,9 +26,36 @@ export async function signInWithGoogle() {
   }
 }
 
-export function signOutUser() {
+// Remove every locally-cached workspace slice on this device (all keys under the
+// `deskdazzle.` namespace: per-app stores, the userdata cache, workspace list,
+// settings, layout prefs, …). The cloud copy is untouched and re-downloads on
+// the next sign-in.
+function flushLocalWorkspaceData() {
+  try {
+    const keys = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith('deskdazzle.')) keys.push(k);
+    }
+    keys.forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+// Sign out and FLUSH all cached workspace data from the device, then hard-reload
+// so no in-memory store or live listener from the previous account survives —
+// essential on shared machines. Order matters: sign out first (so no write is
+// aimed at the old uid), then clear, then reload into a clean anonymous session.
+export async function signOutUser() {
   trackEvent('logout');
-  return signOut(auth);
+  try {
+    await signOut(auth);
+  } catch {
+    /* sign out best-effort; still flush + reload */
+  }
+  flushLocalWorkspaceData();
+  if (typeof window !== 'undefined') window.location.assign('/');
 }
 
 // Edit the user's display name / avatar. Writes to BOTH the Auth account (so it

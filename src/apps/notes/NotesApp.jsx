@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { Link2, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '../../lib/store/WorkspaceProvider';
+import { useWorkspaceEntities, ENTITY_ROUTES } from '../../lib/context/useWorkspaceEntities';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,22 +61,26 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-// Replace [[Wiki Links]] with anchors before the markdown pass. Existing
-// titles get data-note-id; unknown ones get data-note-missing so a click
-// can create the note.
-function linkifyWiki(body, notes) {
+// Replace [[Wiki Links]] with anchors before the markdown pass. A link now
+// resolves against the WHOLE workspace (notes, tasks, roadmaps, milestones,
+// decks) via `resolveTitle` — not just other notes. Resolved links carry the
+// global entity id + type; unknown titles get data-note-missing so a click can
+// create a new note.
+function linkifyWiki(body, resolveTitle) {
   return body.replace(/\[\[([^[\]]+)\]\]/g, (match, raw) => {
     const title = raw.trim();
     if (!title) return match;
-    const target = notes.find(
-      (n) => (n.title || '').trim().toLowerCase() === title.toLowerCase(),
-    );
+    const target = resolveTitle(title);
     if (target) {
-      return `<a data-note-id="${escapeHtml(String(target.id))}" href="#">${escapeHtml(title)}</a>`;
+      return `<a data-entity-id="${escapeHtml(target.id)}" data-entity-type="${escapeHtml(target.type)}" href="#">${escapeHtml(title)}</a>`;
     }
     return `<a data-note-missing="${escapeHtml(title)}" href="#" class="opacity-60">${escapeHtml(title)}</a>`;
   });
 }
+
+// Small glyph per entity type, shown on backlink chips so a cross-app link is
+// recognisable at a glance.
+const ENTITY_ICON = { note: '📝', task: '✅', roadmap: '🗺️', milestone: '📍', deck: '🃏' };
 
 function parseTags(text) {
   return text
@@ -110,6 +116,8 @@ const EMPTY_DRAFT = { title: '', body: '', tags: '' };
 // The editor/preview/backlinks panes are hidden below `@md`, mirroring the old
 // widget which only surfaced quick-add + a browsable list of titles.
 function NotesApp() {
+  const navigate = useNavigate();
+  const wctx = useWorkspaceEntities(); // workspace-wide entity graph for links
   const [notes, setNotes] = useStore('notes', []);
   const [selectedId, setSelectedId] = useState(null);
   const [mode, setMode] = useState('preview'); // 'edit' | 'preview'
@@ -208,11 +216,13 @@ function NotesApp() {
       setHtml('');
       return undefined;
     }
-    convertText('md2html', linkifyWiki(selected.body, notes))
+    convertText('md2html', linkifyWiki(selected.body, wctx.resolveTitle))
       .then((raw) => {
         if (!cancelled) {
           setHtml(
-            DOMPurify.sanitize(raw, { ADD_ATTR: ['data-note-id', 'data-note-missing'] }),
+            DOMPurify.sanitize(raw, {
+              ADD_ATTR: ['data-entity-id', 'data-entity-type', 'data-note-missing'],
+            }),
           );
         }
       })
@@ -222,7 +232,7 @@ function NotesApp() {
     return () => {
       cancelled = true;
     };
-  }, [mode, selectedId, notes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, selectedId, notes, wctx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const visibleNotes = useMemo(() => {
     if (hits !== null) {
@@ -238,18 +248,26 @@ function NotesApp() {
       .map((note) => ({ note, snippet: null }));
   }, [hits, notes]);
 
-  const backlinks = useMemo(() => {
-    if (!selected || !(selected.title || '').trim()) return [];
-    const needle = `[[${selected.title.trim().toLowerCase()}]]`;
-    return notes.filter(
-      (n) => n.id !== selected.id && (n.body || '').toLowerCase().includes(needle),
-    );
-  }, [notes, selected]);
+  // Backlinks now span the WHOLE workspace: any entity (note, task, milestone…)
+  // that links to this note via [[title]], resolved through the context layer.
+  const backlinks = selected ? wctx.backlinksOf(`note:${selected.id}`) : [];
 
   const openNote = (id) => {
     setSelectedId(id);
     setMode('preview');
     if (narrow) setSidebarOpen(false); // push to the note; the list slides away
+  };
+
+  // Open any workspace entity a link points at: notes open here; every other
+  // type navigates to its owning app.
+  const openEntity = (entity) => {
+    if (!entity) return;
+    if (entity.type === 'note') {
+      const target = notes.find((n) => String(n.id) === String(entity.ref.id));
+      if (target) openNote(target.id);
+      return;
+    }
+    navigate(ENTITY_ROUTES[entity.type] || '/');
   };
 
   const startEdit = (note) => {
@@ -329,16 +347,16 @@ function NotesApp() {
     toast.success('Note added');
   };
 
-  // Wiki-link clicks inside the rendered preview (event delegation).
+  // Wiki-link clicks inside the rendered preview (event delegation). A link may
+  // now target any workspace entity; unknown titles create a new note.
   const onPreviewClick = (e) => {
     const anchor = e.target.closest('a');
     if (!anchor) return;
-    const noteId = anchor.getAttribute('data-note-id');
+    const entityId = anchor.getAttribute('data-entity-id');
     const missing = anchor.getAttribute('data-note-missing');
-    if (noteId !== null) {
+    if (entityId !== null) {
       e.preventDefault();
-      const target = notes.find((n) => String(n.id) === noteId);
-      if (target) openNote(target.id);
+      openEntity(wctx.byId.get(entityId));
     } else if (missing !== null) {
       e.preventDefault();
       createFromLink(missing);
@@ -595,9 +613,16 @@ function NotesApp() {
                       <Link2 className="size-3.5" /> Linked from
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {backlinks.map((n) => (
-                        <Button key={n.id} variant="outline" size="sm" onClick={() => openNote(n.id)}>
-                          {n.title || 'Untitled'}
+                      {backlinks.map((ent) => (
+                        <Button
+                          key={ent.id}
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => openEntity(ent)}
+                        >
+                          <span className="text-xs text-muted-foreground">{ENTITY_ICON[ent.type] || '•'}</span>
+                          {ent.title || 'Untitled'}
                         </Button>
                       ))}
                     </div>

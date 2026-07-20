@@ -21,7 +21,7 @@ function Donate() {
 
     const shareUpiId = async () => {
         try {
-            await navigator.share({ text: 'jayashbhandary.famc@idfcbank' });
+            await navigator.share({ text: '9136007794@fam' });
         } catch (error) {
             toast.error(String(error?.message || error));
         }
@@ -48,7 +48,7 @@ function Donate() {
                             aria-label='Share UPI ID'
                         >
                             <QRCodeSVG
-                                value={`upi://pay?pa=jayashbhandary.famc@idfcbank&pn=DeskDazzle&am=${amount}`}
+                                value={`upi://pay?pa=9136007794@fam&pn=DeskDazzle&am=${amount}`}
                                 size={200}
                             />
                         </button>
