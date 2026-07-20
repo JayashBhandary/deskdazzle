@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { rtdb } from '../../firebaseConfig';
 import { DEFAULT_WORKSPACE } from './syncEngine';
+import { getSyncDebounceMs } from './syncConfig';
+import { isPageVisible, onVisibilityChange } from './visibility';
 
 // The workspace registry — the list of "Spaces" and which one is active.
 //
@@ -17,7 +19,6 @@ import { DEFAULT_WORKSPACE } from './syncEngine';
 const LIST_KEY = 'deskdazzle.workspaces';
 const META_KEY = 'deskdazzle.workspaces.meta';
 const ACTIVE_KEY = 'deskdazzle.activeWorkspace';
-const WRITE_DEBOUNCE_MS = 600;
 
 const DEFAULT_LIST = [{ id: DEFAULT_WORKSPACE, name: 'Main', emoji: '🖥️' }];
 
@@ -91,7 +92,7 @@ export function useWorkspaces(user) {
   const scheduleCloud = useCallback(() => {
     if (!uidRef.current) return;
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(flushCloud, WRITE_DEBOUNCE_MS);
+    timer.current = setTimeout(flushCloud, getSyncDebounceMs());
   }, [flushCloud]);
 
   // Persist the list locally (with a fresh stamp) + mirror to the cloud.
@@ -102,42 +103,61 @@ export function useWorkspaces(user) {
     scheduleCloud();
   }, [scheduleCloud]);
 
-  // Live cloud mirror of the workspace list (last-write-wins).
+  // Live cloud mirror of the workspace list (last-write-wins). The listener is
+  // held only while the tab is visible, so a backgrounded tab releases its RTDB
+  // connection.
   useEffect(() => {
     if (!user) {
       uidRef.current = null;
-      return;
+      return undefined;
     }
     uidRef.current = user.uid;
     const r = ref(rtdb, `users/${user.uid}/workspaceMeta`);
-    const unsub = onValue(r, (snap) => {
-      const val = snap.val();
-      if (!val || typeof val.json !== 'string') {
-        // Remote empty but we have a real local list → seed the cloud copy.
-        if (updatedRef.current > 0) scheduleCloud();
-        return;
-      }
-      const remoteMs = Number(val.updatedMs) || 0;
-      if (remoteMs > updatedRef.current) {
-        try {
-          const list = JSON.parse(val.json);
-          if (!Array.isArray(list) || !list.length) return;
-          updatedRef.current = remoteMs;
-          listRef.current = list;
-          writeList(list, remoteMs);
-          setWorkspaces(list);
-          // If the active workspace vanished remotely, fall back to default.
-          setActiveId((cur) => (list.some((w) => w.id === cur) ? cur : DEFAULT_WORKSPACE));
-        } catch {
-          /* ignore corrupt payload */
+    let unsub = null;
+
+    const attach = () => {
+      if (unsub) return;
+      unsub = onValue(r, (snap) => {
+        const val = snap.val();
+        if (!val || typeof val.json !== 'string') {
+          // Remote empty but we have a real local list → seed the cloud copy.
+          if (updatedRef.current > 0) scheduleCloud();
+          return;
         }
-      } else if (updatedRef.current > remoteMs) {
-        // Local is newer than the cloud → push it up.
-        scheduleCloud();
-      }
+        const remoteMs = Number(val.updatedMs) || 0;
+        if (remoteMs > updatedRef.current) {
+          try {
+            const list = JSON.parse(val.json);
+            if (!Array.isArray(list) || !list.length) return;
+            updatedRef.current = remoteMs;
+            listRef.current = list;
+            writeList(list, remoteMs);
+            setWorkspaces(list);
+            // If the active workspace vanished remotely, fall back to default.
+            setActiveId((cur) => (list.some((w) => w.id === cur) ? cur : DEFAULT_WORKSPACE));
+          } catch {
+            /* ignore corrupt payload */
+          }
+        } else if (updatedRef.current > remoteMs) {
+          // Local is newer than the cloud → push it up.
+          scheduleCloud();
+        }
+      });
+    };
+    const detach = () => { if (unsub) { unsub(); unsub = null; } };
+
+    if (isPageVisible()) attach();
+    const offVis = onVisibilityChange((visible) => {
+      if (visible) attach();
+      else { flushCloud(); detach(); }
     });
-    return () => unsub();
-  }, [user, scheduleCloud]);
+
+    return () => {
+      offVis();
+      flushCloud();
+      detach();
+    };
+  }, [user, scheduleCloud, flushCloud]);
 
   const switchWorkspace = useCallback((id) => {
     setActiveId((cur) => {
@@ -196,7 +216,7 @@ export function useWorkspaces(user) {
     if (uid) {
       setTimeout(() => {
         remove(ref(rtdb, `users/${uid}/workspaces/${id}`)).catch(() => {});
-      }, WRITE_DEBOUNCE_MS + 400);
+      }, getSyncDebounceMs() + 400);
     }
   }, [persistList]);
 

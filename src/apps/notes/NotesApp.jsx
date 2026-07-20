@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import DOMPurify from 'dompurify';
-import { Eye, Link2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { Eye, Link2, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '../../lib/store/WorkspaceProvider';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,43 @@ import { Card, CardContent } from '@/components/ui/card';
 import { core } from '@/lib/wasm';
 import { convertText } from '@/lib/converter-client';
 
-// Same prose-ish styling the Markdown Previewer uses for rendered output.
-const PROSE_CLASSES =
-  'prose-headings:font-semibold prose-headings:tracking-tight [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-sm [&_h1]:mt-4 [&_h1]:text-2xl [&_h2]:mt-3 [&_h2]:text-xl [&_h3]:mt-2 [&_h3]:text-lg [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-6';
+// Styling for rendered markdown output. Covers every element the WASM core can
+// emit (GFM tables, task lists, strikethrough, footnotes, headings, code,
+// images, rules) — pulldown-cmark has tables/tasklists/strikethrough/footnotes
+// enabled, so all of these must be styled or they render unstructured.
+const PROSE_CLASSES = [
+  // Prose defaults + wrapping
+  'text-sm leading-relaxed break-words',
+  'prose-headings:font-semibold prose-headings:tracking-tight',
+  // Headings
+  '[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-2xl [&_h1]:font-bold',
+  '[&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2]:text-xl',
+  '[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-lg',
+  '[&_h4]:mt-2 [&_h4]:text-base',
+  '[&_h5]:mt-2 [&_h5]:text-sm',
+  '[&_h6]:mt-2 [&_h6]:text-sm [&_h6]:text-muted-foreground',
+  // Text
+  '[&_p]:my-2 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2',
+  '[&_strong]:font-semibold [&_em]:italic [&_del]:text-muted-foreground [&_del]:line-through',
+  '[&_hr]:my-4 [&_hr]:border-t [&_hr]:border-border',
+  '[&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-md',
+  // Blockquote
+  '[&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground',
+  // Code
+  '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.85em]',
+  '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:text-sm',
+  '[&_pre_code]:bg-transparent [&_pre_code]:p-0',
+  // Lists
+  '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1',
+  '[&_ul_ul]:my-0 [&_ol_ol]:my-0',
+  // GFM task lists: drop the bullet, keep the checkbox inline
+  '[&_li:has(input[type=checkbox])]:list-none [&_li:has(input[type=checkbox])]:-ml-5',
+  '[&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:align-middle',
+  // GFM tables — the part that was "breaking": borders + padding + scroll on overflow
+  '[&_table]:my-3 [&_table]:block [&_table]:w-max [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse',
+  '[&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-semibold',
+  '[&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-1.5',
+].join(' ');
 
 function escapeHtml(s) {
   return s
@@ -83,6 +117,11 @@ function NotesApp() {
   const [hits, setHits] = useState(null); // null = no active search
   const [html, setHtml] = useState('');
   const [quick, setQuick] = useState(''); // narrow/widget quick-capture
+  // Reading zoom for the compact/widget note viewer — a small widget crops the
+  // text, so let the reader scale it up (or down) independently of UI scale.
+  const [readScale, setReadScale] = useState(1);
+  const bumpScale = (delta) =>
+    setReadScale((s) => Math.min(2, Math.max(0.7, Math.round((s + delta) * 10) / 10)));
 
   const selected = notes.find((n) => n.id === selectedId) || null;
 
@@ -256,7 +295,7 @@ function NotesApp() {
   };
 
   return (
-    <div className="@container flex h-full min-h-0 flex-col">
+    <div className="@container relative flex h-full min-h-0 flex-col">
       <div className="grid min-h-0 flex-1 gap-4 @md:grid-cols-[minmax(240px,340px)_1fr] @md:gap-6">
         {/* Note list + capture */}
         <div className="flex min-h-0 flex-col gap-3">
@@ -460,6 +499,90 @@ function NotesApp() {
           )}
         </div>
       </div>
+
+      {/* Compact note viewer — a dialog scoped INSIDE the widget (not portaled to
+          the main window). Shown only below @md, where the side preview pane is
+          hidden, so a small widget / mobile can still read the full note. */}
+      {selected && mode === 'preview' && (
+        <div className="absolute inset-0 z-20 flex flex-col rounded-lg border bg-background @md:hidden">
+          <div className="flex items-center gap-2 border-b px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-sm font-semibold">{selected.title || 'Untitled'}</h2>
+              <p className="truncate text-xs text-muted-foreground">
+                Updated {relativeTime(noteUpdatedMs(selected))}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => bumpScale(-0.1)}
+                disabled={readScale <= 0.7}
+                aria-label="Decrease text size"
+              >
+                <ZoomOut />
+              </Button>
+              <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">
+                {Math.round(readScale * 100)}%
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => bumpScale(0.1)}
+                disabled={readScale >= 2}
+                aria-label="Increase text size"
+              >
+                <ZoomIn />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => setSelectedId(null)}
+                aria-label="Close note"
+              >
+                <X />
+              </Button>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto p-3">
+            <div style={{ zoom: readScale }}>
+              {(selected.tags || []).length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {selected.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                  ))}
+                </div>
+              )}
+              {html ? (
+                <div className={PROSE_CLASSES} onClick={onPreviewClick} dangerouslySetInnerHTML={{ __html: html }} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {(selected.body || '').trim() ? 'Rendering…' : 'This note is empty.'}
+                </p>
+              )}
+
+              {backlinks.length > 0 && (
+                <div className="mt-4 border-t pt-3">
+                  <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                    <Link2 className="size-3.5" /> Linked from
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {backlinks.map((n) => (
+                      <Button key={n.id} variant="outline" size="sm" onClick={() => openNote(n.id)}>
+                        {n.title || 'Untitled'}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

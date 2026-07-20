@@ -19,6 +19,8 @@
 import { ref, onValue, update } from 'firebase/database';
 import { rtdb } from '../../firebaseConfig';
 import { bus, TAB_ID } from '../broadcast';
+import { getSyncDebounceMs } from './syncConfig';
+import { isPageVisible, onVisibilityChange } from './visibility';
 
 export const DEFAULT_WORKSPACE = 'default';
 
@@ -31,8 +33,6 @@ const remotePathOf = (ws, uid, name) =>
   isDefault(ws)
     ? `users/${uid}/stores/${name}`
     : `users/${uid}/workspaces/${ws}/stores/${name}`;
-
-const WRITE_DEBOUNCE_MS = 600;
 
 export class SyncedStore {
   constructor(name, initial, workspaceId = DEFAULT_WORKSPACE) {
@@ -54,6 +54,10 @@ export class SyncedStore {
         this._reloadLocal();
       }
     });
+
+    // Release / re-attach the live listener as the tab is hidden / shown, so a
+    // backgrounded tab doesn't hold an RTDB connection needlessly.
+    this.offVis = onVisibilityChange(() => this._syncListener());
   }
 
   _readLocal() {
@@ -112,7 +116,7 @@ export class SyncedStore {
   _scheduleRemoteWrite() {
     if (!this.uid) return;
     if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => this._flush(), WRITE_DEBOUNCE_MS);
+    this.timer = setTimeout(() => this._flush(), getSyncDebounceMs());
   }
 
   _flush() {
@@ -132,14 +136,20 @@ export class SyncedStore {
       this.timer = null;
       this._flush(); // don't lose a pending write aimed at the previous uid
     }
-    if (this.detach) {
-      this.detach();
-      this.detach = null;
-    }
+    this._detach();
     this.uid = uid;
-    if (!uid) return;
+    this._syncListener();
+  }
 
-    const r = ref(rtdb, remotePathOf(this.workspaceId, uid, this.name));
+  // The live listener is held only while signed in AND the tab is visible.
+  _syncListener() {
+    const want = !!this.uid && isPageVisible();
+    if (want && !this.detach) this._attach();
+    else if (!want && this.detach) { this._flush(); this._detach(); }
+  }
+
+  _attach() {
+    const r = ref(rtdb, remotePathOf(this.workspaceId, this.uid, this.name));
     // onValue (modular SDK) returns its own unsubscribe function.
     this.detach = onValue(r, (snap) => {
       const val = snap.val();
@@ -166,12 +176,20 @@ export class SyncedStore {
     });
   }
 
+  _detach() {
+    if (this.detach) {
+      this.detach();
+      this.detach = null;
+    }
+  }
+
   dispose() {
     if (this.timer) {
       clearTimeout(this.timer);
       this._flush();
     }
-    if (this.detach) this.detach();
+    this._detach();
     this.offBus?.();
+    this.offVis?.();
   }
 }

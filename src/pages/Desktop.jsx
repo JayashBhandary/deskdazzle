@@ -35,7 +35,7 @@ import MediaApp from '../apps/media/MediaApp';
 // smaller than this, so a widget's content never gets cropped.
 const WIDGETS = {
   clock: { title: 'Clock', icon: '🕐', component: ClockApp, w: 300, h: 380, minW: 260, minH: 300 },
-  todo: { title: 'To-Do', icon: '✅', component: TodoApp, w: 320, h: 380, minW: 260, minH: 280 },
+  todo: { title: 'Tasks', icon: '✅', component: TodoApp, w: 320, h: 380, minW: 260, minH: 280 },
   notes: { title: 'Notes', icon: '📝', component: NotesApp, w: 320, h: 380, minW: 260, minH: 260 },
   calculator: { title: 'Calculator', icon: '🧮', component: CalculatorApp, w: 280, h: 380, minW: 250, minH: 340 },
   weather: { title: 'Weather', icon: '🌦️', component: WeatherApp, w: 300, h: 320, minW: 260, minH: 260 },

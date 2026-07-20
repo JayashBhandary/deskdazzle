@@ -147,10 +147,22 @@ export function fontStack(id) {
 export const SCALE_STEPS = [1.15, 1.075, 1, 0.925, 0.85];
 export const DEFAULT_SCALE = 1;
 
+// Sync-write debounce presets (ms). A longer delay batches more edits into each
+// cloud write — fewer writes and less egress, at the cost of slightly higher
+// cross-device latency. Values are clamped in syncConfig.js.
+export const DEFAULT_SYNC_LATENCY = 600;
+export const SYNC_LATENCY_PRESETS = [
+  { ms: 300, label: 'Instant', hint: 'Lowest latency · most writes' },
+  { ms: 600, label: 'Balanced', hint: 'Recommended' },
+  { ms: 2500, label: 'Relaxed', hint: 'Fewer writes · lower cost' },
+];
+
 export const DEFAULT_SETTINGS = {
   themeFollowSystem: false,
   scale: DEFAULT_SCALE,
   font: 'system',
+  // Debounce (ms) before a change is written to the cloud — see SYNC_LATENCY_PRESETS.
+  syncLatency: DEFAULT_SYNC_LATENCY,
   // When true, the desktop dock hides itself and slides up only when the pointer
   // reaches the bottom edge — giving widgets the full canvas height.
   collapsibleDock: false,

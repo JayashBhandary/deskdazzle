@@ -7,7 +7,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { FONTS } from '@/lib/settings/tokens';
+import { FONTS, SYNC_LATENCY_PRESETS } from '@/lib/settings/tokens';
 import ScaleSelector from './ScaleSelector';
 
 const THEME_OPTIONS = [
@@ -98,6 +98,33 @@ export default function AppearancePanel({ settings, update }) {
           checked={settings.collapsibleHeader}
           onCheckedChange={(collapsibleHeader) => update({ collapsibleHeader })}
         />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <Label>Sync latency</Label>
+        <span className="text-xs text-muted-foreground">
+          How quickly changes are saved to the cloud. Longer delays batch edits into
+          fewer writes.
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          {SYNC_LATENCY_PRESETS.map(({ ms, label, hint }) => (
+            <button
+              key={ms}
+              type="button"
+              onClick={() => update({ syncLatency: ms })}
+              aria-pressed={settings.syncLatency === ms}
+              className={cn(
+                'flex flex-col items-center gap-0.5 rounded-lg border px-2 py-2.5 text-center transition-colors',
+                settings.syncLatency === ms
+                  ? 'border-ring bg-accent text-accent-foreground ring-2 ring-ring'
+                  : 'border-border hover:bg-accent/50',
+              )}
+            >
+              <span className="text-sm font-medium">{label}</span>
+              <span className="text-[10px] leading-tight text-muted-foreground">{hint}</span>
+            </button>
+          ))}
+        </div>
       </section>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { rtdb } from '../firebaseConfig';
 import { DEFAULT_WORKSPACE } from '../lib/store/syncEngine';
+import { getSyncDebounceMs } from '../lib/store/syncConfig';
 
 // Single source of truth for a user's fast-changing state (theme, todos, desktop
 // layout, kanban projects, profile mirror). Uses:
@@ -22,7 +23,6 @@ import { DEFAULT_WORKSPACE } from '../lib/store/syncEngine';
 // While signed out it behaves as a local-only store backed by localStorage.
 
 const GLOBAL_CACHE = 'deskdazzle.userdata';
-const WRITE_DEBOUNCE_MS = 600;
 
 const isDefaultWs = (ws) => !ws || ws === DEFAULT_WORKSPACE;
 const wsCacheKeyOf = (ws) => (isDefaultWs(ws) ? GLOBAL_CACHE : `deskdazzle.ws.${ws}.data`);
@@ -109,7 +109,7 @@ export function useUserData(user, workspaceId = DEFAULT_WORKSPACE) {
 
   const schedule = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(flush, WRITE_DEBOUNCE_MS);
+    timer.current = setTimeout(flush, getSyncDebounceMs());
   }, [flush]);
 
   const persistGlobal = useCallback((patch) => {

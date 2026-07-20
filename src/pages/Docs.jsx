@@ -202,6 +202,14 @@ function Docs() {
               Manage your session anytime from your{' '}
               <Link className={LINK} to='/profile'>Profile</Link>.
             </p>
+            <p>
+              You can tune how eagerly changes are pushed to the cloud with{' '}
+              <em>Sync latency</em> in{' '}
+              <Link className={LINK} to='/settings'>Settings → Appearance</Link> —{' '}
+              <strong>Instant</strong>, <strong>Balanced</strong> (default) or{' '}
+              <strong>Relaxed</strong> (batches edits into fewer writes). Changes
+              always save locally first, so the app stays instant regardless.
+            </p>
           </section>
 
           {/* Install */}

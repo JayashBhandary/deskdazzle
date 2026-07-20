@@ -4,7 +4,7 @@
 
 import { parseOklch, formatOklch } from './color';
 import {
-  TOKEN_IDS, SURFACE_TOKENS, DEFAULT_LIGHT, DEFAULT_DARK, DEFAULT_SETTINGS, fontStack,
+  TOKEN_IDS, SURFACE_TOKENS, DEFAULT_LIGHT, DEFAULT_DARK, DEFAULT_SETTINGS, DEFAULT_SYNC_LATENCY, fontStack,
 } from './tokens';
 
 const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
@@ -86,6 +86,7 @@ export function normalizeSettings(raw) {
     font: typeof s.font === 'string' ? s.font : DEFAULT_SETTINGS.font,
     collapsibleDock: !!s.collapsibleDock,
     collapsibleHeader: !!s.collapsibleHeader,
+    syncLatency: Number(s.syncLatency) > 0 ? Number(s.syncLatency) : DEFAULT_SYNC_LATENCY,
     colors: {
       light: sanitizeColors(s.colors?.light),
       dark: sanitizeColors(s.colors?.dark),
