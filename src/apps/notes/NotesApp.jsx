@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { Link2, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ListTodo, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
-import { useStore } from '../../lib/store/WorkspaceProvider';
 import { useWorkspaceEntities, ENTITY_ROUTES } from '../../lib/context/useWorkspaceEntities';
+import { useWorkspaceActions } from '../../lib/context/useWorkspaceActions';
+import { useNotes } from '../../lib/context/notesEntities';
+import { dueLabel } from '@/components/tasks/model';
+import Backlinks from '@/components/context/Backlinks';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,10 +81,6 @@ function linkifyWiki(body, resolveTitle) {
   });
 }
 
-// Small glyph per entity type, shown on backlink chips so a cross-app link is
-// recognisable at a glance.
-const ENTITY_ICON = { note: '📝', task: '✅', roadmap: '🗺️', milestone: '📍', deck: '🃏' };
-
 function parseTags(text) {
   return text
     .split(',')
@@ -118,7 +117,8 @@ const EMPTY_DRAFT = { title: '', body: '', tags: '' };
 function NotesApp() {
   const navigate = useNavigate();
   const wctx = useWorkspaceEntities(); // workspace-wide entity graph for links
-  const [notes, setNotes] = useStore('notes', []);
+  const actions = useWorkspaceActions(); // cross-app writes (e.g. note → task)
+  const [notes, setNotes] = useNotes(); // note records backed by the unified store
   const [selectedId, setSelectedId] = useState(null);
   const [mode, setMode] = useState('preview'); // 'edit' | 'preview'
   const [draft, setDraft] = useState(EMPTY_DRAFT);
@@ -138,6 +138,7 @@ function NotesApp() {
   // brings the list back. On a wide container both show side by side and the
   // toggle simply hides/reveals the sidebar for a full-width note.
   const rootRef = useRef(null);
+  const bodyRef = useRef(null); // the body <textarea>, for line/selection reads
   const [narrow, setNarrow] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => {
@@ -336,6 +337,53 @@ function NotesApp() {
     toast.success(`Created "${title}"`);
   };
 
+  // Cross-app command (WEBOS Phase 3): turn the selected text — or, with no
+  // selection, the line under the cursor — into a Task. The line runs through
+  // the same NL quick-parse the Tasks app uses, so "call mom friday !high"
+  // becomes a task with a due date and priority. Written via the context action
+  // layer, so Notes never touches the Tasks store directly.
+  const makeTaskFromNote = async () => {
+    const el = bodyRef.current;
+    let raw = '';
+    if (el && typeof el.selectionStart === 'number') {
+      const { selectionStart, selectionEnd, value } = el;
+      if (selectionEnd > selectionStart) {
+        raw = value.slice(selectionStart, selectionEnd);
+      } else {
+        const from = value.lastIndexOf('\n', selectionStart - 1) + 1;
+        const nl = value.indexOf('\n', selectionStart);
+        raw = value.slice(from, nl === -1 ? value.length : nl);
+      }
+    }
+    // Fall back to the draft title, and strip a leading markdown list/task marker.
+    const line = (raw || draft.title || '')
+      .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/, '')
+      .trim();
+    if (!line) {
+      toast.error('Select a line to turn into a task');
+      return;
+    }
+    let fields = { text: line };
+    try {
+      const p = await core.quickParse(line);
+      fields = {
+        text: p.title || line,
+        due: typeof p.due === 'number' ? p.due : undefined,
+        priority: p.priority,
+        tags: p.tags,
+        recurrence: p.recurrence,
+      };
+    } catch {
+      // wasm unavailable → plain task from the raw line
+    }
+    const id = actions.createTask(fields);
+    if (id) {
+      toast.success(
+        fields.due ? `Task created · due ${dueLabel(fields.due)}` : 'Task created in Tasks',
+      );
+    }
+  };
+
   // Compact capture used at widget width: first line becomes the title, mirroring
   // the old NotesWidget behaviour while keeping the full note data shape.
   const quickAdd = () => {
@@ -517,6 +565,14 @@ function NotesApp() {
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {selected ? 'Edit note' : 'New note'}
                 </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={makeTaskFromNote}
+                  title="Make a task from the selected line"
+                >
+                  <ListTodo /> Make task
+                </Button>
                 <Button size="sm" onClick={save} disabled={!draft.title.trim() && !draft.body.trim()}>
                   <Save /> Save
                 </Button>
@@ -576,6 +632,7 @@ function NotesApp() {
                   aria-label="Note title"
                 />
                 <Textarea
+                  ref={bodyRef}
                   rows={14}
                   value={draft.body}
                   placeholder="Write markdown... link other notes with [[Note Title]]"
@@ -607,27 +664,7 @@ function NotesApp() {
                   </p>
                 )}
 
-                {backlinks.length > 0 && (
-                  <div className="mt-4 border-t pt-3">
-                    <p className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                      <Link2 className="size-3.5" /> Linked from
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {backlinks.map((ent) => (
-                        <Button
-                          key={ent.id}
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5"
-                          onClick={() => openEntity(ent)}
-                        >
-                          <span className="text-xs text-muted-foreground">{ENTITY_ICON[ent.type] || '•'}</span>
-                          {ent.title || 'Untitled'}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <Backlinks entities={backlinks} onOpen={openEntity} />
               </div>
             ) : (
               <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">

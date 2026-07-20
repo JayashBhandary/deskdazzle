@@ -22,6 +22,7 @@ import QRCodeGenerator from './pages/QRCodeGenerator';
 import TranslationTool from './pages/TranslationTool';
 import TextToSpeech from './pages/TextToSpeech';
 import NoteTaking from './pages/NoteTaking';
+import Today from './pages/Today';
 import WeatherApp from './pages/WeatherApp';
 import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -35,8 +36,10 @@ import Docs from './pages/Docs';
 import Shortcuts from './components/Shortcuts';
 import Splash from './components/Splash';
 import SettingsRuntime from './components/SettingsRuntime';
+import EntityMigration from './components/EntityMigration';
 import Settings from './pages/Settings';
 import { WorkspaceProvider } from './lib/store/WorkspaceProvider';
+import { WorkspaceGraphProvider } from './lib/context/WorkspaceGraphProvider';
 import { TimeProvider } from './lib/time/TimeProvider';
 
 
@@ -145,12 +148,14 @@ function App() {
   return (
     <ThemeContext.Provider value={store}>
       <WorkspaceProvider user={user} workspaceId={activeWorkspaceId}>
+      <WorkspaceGraphProvider>
       <TimeProvider>
       <Splash show={showSplash} />
       <BrowserRouter>
         <RouteAnalytics />
         <Shortcuts />
         <SettingsRuntime />
+        <EntityMigration />
         <div className={`app flex min-h-screen flex-col bg-background text-foreground ${theme ? "dark" : "light"}`}>
           <Header />
           <main className="min-h-screen flex-1">
@@ -174,6 +179,7 @@ function App() {
             <Route path='/roadmap' element={<Roadmap />} />
             <Route path='/qrcode-generator' element={<QRCodeGenerator />} />
             <Route path='/calender' element={<Calender />} />
+            <Route path='/today' element={<Today />} />
             <Route path='/translation-tool' element={<TranslationTool />} />
             <Route path='/text-to-speech' element={<TextToSpeech />} />
             <Route path='/note-taking' element={<NoteTaking />} />
@@ -202,6 +208,7 @@ function App() {
         </div>
       </BrowserRouter>
       </TimeProvider>
+      </WorkspaceGraphProvider>
       </WorkspaceProvider>
     </ThemeContext.Provider>
   );

@@ -29,11 +29,13 @@ import BudgetApp from '../apps/budget/BudgetApp';
 import CalendarApp from '../apps/calendar/CalendarApp';
 import ColorPicker from '../apps/design/parts/ColorPicker';
 import MediaApp from '../apps/media/MediaApp';
+import TodayApp from '../apps/today/TodayApp';
 
 // Registry of every widget that can live on the desktop. `w`/`h` are the
 // opening size; `minW`/`minH` are the "safe area" — the window can't be shrunk
 // smaller than this, so a widget's content never gets cropped.
 const WIDGETS = {
+  today: { title: 'Today', icon: '🌅', component: TodayApp, w: 320, h: 400, minW: 260, minH: 300 },
   clock: { title: 'Clock', icon: '🕐', component: ClockApp, w: 300, h: 380, minW: 260, minH: 300 },
   todo: { title: 'Tasks', icon: '✅', component: TodoApp, w: 320, h: 380, minW: 260, minH: 280 },
   notes: { title: 'Notes', icon: '📝', component: NotesApp, w: 320, h: 380, minW: 260, minH: 260 },
@@ -45,7 +47,7 @@ const WIDGETS = {
   media: { title: 'Media', icon: '🎧', component: MediaApp, w: 300, h: 140, minW: 260, minH: 120 },
 };
 
-const ORDER = ['clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];
+const ORDER = ['today', 'clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];
 
 // The workspace starts empty — the user opens whatever widgets they want from
 // the dock. Closing them all returns to this clean state (and stays there).

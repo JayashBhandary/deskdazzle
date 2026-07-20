@@ -23,6 +23,7 @@ export const TOOLS = [
   { path: '/flashcards', name: 'Flashcards', icon: '🃏', desc: 'Spaced-repetition study cards (great for med school & exams).', keywords: 'study spaced repetition anki srs medicine exam memorize learn', category: 'Study' },
 
   // --- Plan ---
+  { path: '/today', name: 'Today', icon: '🌅', desc: 'One agenda across everything due today and this week.', keywords: 'today agenda dashboard due overdue upcoming schedule tasks milestones', category: 'Plan' },
   { path: '/to-do-list', name: 'Tasks', icon: '📝', desc: 'Projects, subtasks and a kanban board — with natural-language quick-add.', keywords: 'tasks todo checklist productivity kanban board projects subtasks', category: 'Plan' },
   { path: '/roadmap', name: 'Roadmap Planner', icon: '🗺️', desc: 'Plan goals as milestones and steps — startup, research or exam prep.', keywords: 'roadmap milestones goals plan startup research project timeline', category: 'Plan' },
   { path: '/calender', name: 'Calendar', icon: '📅', desc: 'Browse a monthly calendar.', keywords: 'date month schedule day', category: 'Plan' },

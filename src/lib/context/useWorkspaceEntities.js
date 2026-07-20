@@ -6,16 +6,22 @@
 // approach), but they can query the whole workspace through here.
 //
 // Every entity shares one envelope:
-//   { id, type, title, dueMs, tags, updatedMs, linkSource, ref }
+//   { id, type, title, dueMs, done, tags, updatedMs, linkSource, ref }
 // where `id` is a GLOBAL id (`<type>:<innerId>`), `linkSource` is the text that
 // may contain [[wiki links]], and `ref` locates the record in its own store.
 //
 // Derived (never stored): a by-title index for [[link]] resolution, an outgoing
 // link graph, and its reverse — backlinks. See WEBOS_PLAN.md.
 
-import { useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { ThemeContext } from '../../App';
 import { useStore } from '../store/WorkspaceProvider';
+import { dayKey } from '../time/format';
+
+// The computed graph is provided once at the app root (WorkspaceGraphProvider)
+// and shared, so N mounted consumers (Notes + Calendar + Today widgets open at
+// once) don't each rebuild the whole graph + indexes. See useComputeWorkspaceGraph.
+export const WorkspaceGraphContext = createContext(null);
 
 // App route each entity type opens in (for cross-app navigation from a link).
 export const ENTITY_ROUTES = {
@@ -25,6 +31,10 @@ export const ENTITY_ROUTES = {
   milestone: '/roadmap',
   deck: '/flashcards',
 };
+
+// Local-day key for a millisecond timestamp (shared with the Clock layer).
+export const dateKeyOf = (ms) =>
+  typeof ms === 'number' ? dayKey(new Date(ms)) : null;
 
 const WIKI_RE = /\[\[([^[\]]+)\]\]/g;
 
@@ -40,23 +50,27 @@ export function extractWikiTitles(text) {
   return out;
 }
 
-export function useWorkspaceEntities() {
+// Builds the normalized read-model + indexes. Called ONCE by
+// WorkspaceGraphProvider; consumers use useWorkspaceEntities() to read it.
+export function useComputeWorkspaceGraph() {
   const { todos } = useContext(ThemeContext);
   // Reading these here spins up their (workspace-scoped, visibility-gated) live
-  // stores so links/backlinks stay current wherever this hook is used.
-  const [notes] = useStore('notes', []);
+  // stores so links/backlinks stay current wherever this hook is used. Notes now
+  // live in the unified `entities` store (Phase 4); Tasks/Roadmap/Flashcards are
+  // still on their per-app stores and get normalized in below.
+  const [entityStore] = useStore('entities', []);
   const [roadmaps] = useStore('roadmaps', []);
   const [flash] = useStore('flashcards', { decks: [], cards: [] });
 
   const entities = useMemo(() => {
     const list = [];
 
-    for (const n of notes || []) {
-      if (!n) continue;
+    for (const e of entityStore || []) {
+      if (!e || e.type !== 'note') continue; // only notes are unified so far
       list.push({
-        id: `note:${n.id}`, type: 'note', title: n.title || 'Untitled',
-        dueMs: null, tags: n.tags || [], updatedMs: n.updatedMs || 0,
-        linkSource: n.body || '', ref: { store: 'notes', id: n.id },
+        id: `note:${e.noteId}`, type: 'note', title: e.title || 'Untitled',
+        dueMs: null, done: false, tags: e.tags || [], updatedMs: e.updatedMs || 0,
+        linkSource: e.body || '', ref: { store: 'entities', id: e.noteId },
       });
     }
 
@@ -65,8 +79,8 @@ export function useWorkspaceEntities() {
       const innerId = typeof t.id === 'string' && t.id ? t.id : `__i${i}`;
       list.push({
         id: `task:${innerId}`, type: 'task', title: t.text || 'Untitled task',
-        dueMs: typeof t.due === 'number' ? t.due : null, tags: t.tags || [],
-        updatedMs: t.updatedMs || t.createdMs || 0,
+        dueMs: typeof t.due === 'number' ? t.due : null, done: !!t.isDone,
+        tags: t.tags || [], updatedMs: t.updatedMs || t.createdMs || 0,
         linkSource: t.text || '', ref: { store: 'todos', id: innerId },
       });
     });
@@ -75,14 +89,14 @@ export function useWorkspaceEntities() {
       if (!r) continue;
       list.push({
         id: `roadmap:${r.id}`, type: 'roadmap', title: r.title || 'Roadmap',
-        dueMs: null, tags: [], updatedMs: r.createdMs || 0,
+        dueMs: null, done: false, tags: [], updatedMs: r.createdMs || 0,
         linkSource: '', ref: { store: 'roadmaps', id: r.id },
       });
       for (const ms of r.milestones || []) {
         if (!ms) continue;
         list.push({
           id: `milestone:${ms.id}`, type: 'milestone', title: ms.title || 'Milestone',
-          dueMs: typeof ms.due === 'number' ? ms.due : null, tags: [],
+          dueMs: typeof ms.due === 'number' ? ms.due : null, done: !!ms.done, tags: [],
           updatedMs: r.createdMs || 0,
           linkSource: (ms.steps || []).map((s) => s?.text || '').join(' '),
           ref: { store: 'roadmaps', id: r.id, milestoneId: ms.id },
@@ -94,13 +108,13 @@ export function useWorkspaceEntities() {
       if (!d) continue;
       list.push({
         id: `deck:${d.id}`, type: 'deck', title: d.name || 'Deck',
-        dueMs: null, tags: [], updatedMs: d.createdMs || 0,
+        dueMs: null, done: false, tags: [], updatedMs: d.createdMs || 0,
         linkSource: '', ref: { store: 'flashcards', id: d.id },
       });
     }
 
     return list;
-  }, [notes, todos, roadmaps, flash]);
+  }, [entityStore, todos, roadmaps, flash]);
 
   const indexes = useMemo(() => {
     const byId = new Map();
@@ -110,6 +124,24 @@ export function useWorkspaceEntities() {
       const key = e.title.trim().toLowerCase();
       if (key && !byTitle.has(key)) byTitle.set(key, e);
     }
+    // byDate: local-day key -> entities due that day (any dated type).
+    // byTag: lowercased tag -> entities carrying it.
+    const byDate = new Map();
+    const byTag = new Map();
+    for (const e of entities) {
+      const key = dateKeyOf(e.dueMs);
+      if (key) {
+        if (!byDate.has(key)) byDate.set(key, []);
+        byDate.get(key).push(e);
+      }
+      for (const tag of e.tags || []) {
+        const t = String(tag).trim().toLowerCase();
+        if (!t) continue;
+        if (!byTag.has(t)) byTag.set(t, []);
+        byTag.get(t).push(e);
+      }
+    }
+
     const backlinks = new Map(); // targetId -> Set(sourceId)
     const outgoing = new Map(); // sourceId -> Set(targetId)
     for (const e of entities) {
@@ -124,12 +156,14 @@ export function useWorkspaceEntities() {
         backlinks.get(target.id).add(e.id);
       }
     }
-    return { byId, byTitle, backlinks, outgoing };
+    return { byId, byTitle, byDate, byTag, backlinks, outgoing };
   }, [entities]);
 
   return useMemo(() => ({
     entities,
     byId: indexes.byId,
+    byDate: indexes.byDate,
+    byTag: indexes.byTag,
     // Resolve a [[title]] to any entity across the workspace (null if none).
     resolveTitle: (title) =>
       title ? indexes.byTitle.get(String(title).trim().toLowerCase()) || null : null,
@@ -139,5 +173,25 @@ export function useWorkspaceEntities() {
     // Entities this one links to (any type).
     linksFrom: (entityId) =>
       [...(indexes.outgoing.get(entityId) || [])].map((id) => indexes.byId.get(id)).filter(Boolean),
+    // Dated entities on a given day (Date or epoch ms). Sorted by dueMs.
+    entitiesOnDate: (dateOrMs) => {
+      const ms = dateOrMs instanceof Date ? dateOrMs.getTime() : dateOrMs;
+      const key = dateKeyOf(ms);
+      if (!key) return [];
+      return [...(indexes.byDate.get(key) || [])].sort((a, b) => (a.dueMs || 0) - (b.dueMs || 0));
+    },
+    // Entities carrying a tag (case-insensitive).
+    entitiesByTag: (tag) =>
+      tag ? [...(indexes.byTag.get(String(tag).trim().toLowerCase()) || [])] : [],
   }), [entities, indexes]);
+}
+
+// The hook every app uses: reads the shared graph from context. Requires a
+// <WorkspaceGraphProvider> ancestor (mounted at the app root).
+export function useWorkspaceEntities() {
+  const graph = useContext(WorkspaceGraphContext);
+  if (!graph) {
+    throw new Error('useWorkspaceEntities must be used within <WorkspaceGraphProvider>');
+  }
+  return graph;
 }
