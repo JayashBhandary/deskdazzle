@@ -149,7 +149,11 @@ function DesktopWindow({ win, meta, isMobile, zoom = 1, onFocus, onClose, onMini
         </span>
       </div>
 
-      <div className="min-h-0 flex-1 select-text overflow-auto p-3">
+      {/* `select-none` keeps a drag across the desktop from highlighting a
+          widget's labels, buttons, headings and displays. Real text entry
+          (inputs/textareas), editable content, and anything explicitly marked
+          `[data-selectable]` opts back in — see index.css. */}
+      <div className="desk-window-body min-h-0 flex-1 select-none overflow-auto p-3">
         <Body />
       </div>
 

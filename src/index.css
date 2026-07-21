@@ -155,3 +155,17 @@
       box-shadow var(--transition-duration) ease;
   }
 }
+
+/* Desktop widget selection scope. The workspace surface and each widget's
+   chrome are `select-none`, so a stray drag across the canvas can't highlight
+   labels, buttons, headings or displays (clock digits, empty-state text). Only
+   genuine text entry — inputs and textareas — editable regions, and content
+   explicitly opted in with `data-selectable` are highlightable. Left unlayered
+   on purpose so it wins over Tailwind's utility-layer `select-none`. */
+.desk-window-body :is(input, textarea),
+.desk-window-body [contenteditable=''],
+.desk-window-body [contenteditable='true'],
+.desk-window-body [data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
