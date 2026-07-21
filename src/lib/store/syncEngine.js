@@ -24,6 +24,12 @@ import { isPageVisible, onVisibilityChange } from './visibility';
 
 export const DEFAULT_WORKSPACE = 'default';
 
+// Never push more than this to the cloud in one store. A store that grows past
+// it (e.g. a huge imported spreadsheet) stays local-only rather than hammering
+// RTDB / the network on every debounced write. localStorage writes are already
+// wrapped in try/catch, so oversize data degrades gracefully instead of crashing.
+const MAX_REMOTE_BYTES = 900 * 1024;
+
 // The default workspace maps to the legacy (un-prefixed) locations for backward
 // compatibility; every other workspace gets its own isolated namespace.
 const isDefault = (ws) => !ws || ws === DEFAULT_WORKSPACE;
@@ -122,8 +128,25 @@ export class SyncedStore {
   _flush() {
     this.timer = null;
     if (!this.uid) return;
+    let json;
+    try {
+      json = JSON.stringify(this.value);
+    } catch {
+      return; // unserializable — nothing to sync
+    }
+    if (json.length > MAX_REMOTE_BYTES) {
+      if (!this._warnedSize) {
+        this._warnedSize = true;
+        console.warn(
+          `[syncEngine] store "${this.name}" is ${(json.length / 1024) | 0}KB ` +
+            `(> ${MAX_REMOTE_BYTES / 1024}KB) — keeping it local-only, not syncing to the cloud.`,
+        );
+      }
+      return;
+    }
+    this._warnedSize = false;
     update(ref(rtdb, remotePathOf(this.workspaceId, this.uid, this.name)), {
-      json: JSON.stringify(this.value),
+      json,
       updatedMs: this.updatedMs,
     }).catch(() => {});
   }

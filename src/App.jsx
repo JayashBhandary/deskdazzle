@@ -22,6 +22,10 @@ import QRCodeGenerator from './pages/QRCodeGenerator';
 import TranslationTool from './pages/TranslationTool';
 import TextToSpeech from './pages/TextToSpeech';
 import NoteTaking from './pages/NoteTaking';
+import WordProcessor from './pages/WordProcessor';
+import Spreadsheet from './pages/Spreadsheet';
+import Slides from './pages/Slides';
+import PdfTools from './pages/PdfTools';
 import Today from './pages/Today';
 import WeatherApp from './pages/WeatherApp';
 import Footer from './components/Footer';
@@ -183,6 +187,10 @@ function App() {
             <Route path='/translation-tool' element={<TranslationTool />} />
             <Route path='/text-to-speech' element={<TextToSpeech />} />
             <Route path='/note-taking' element={<NoteTaking />} />
+            <Route path='/word' element={<WordProcessor />} />
+            <Route path='/excel' element={<Spreadsheet />} />
+            <Route path='/powerpoint' element={<Slides />} />
+            <Route path='/pdf' element={<PdfTools />} />
             <Route path='/weather' element={<WeatherApp />} />
             <Route path='/calculator' element={<Calculator />} />
             <Route path='/docs' element={<Docs />} />

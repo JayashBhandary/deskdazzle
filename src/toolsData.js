@@ -4,12 +4,18 @@
 
 // Category order for the Apps grid (web-OS "folders"). Every tool declares a
 // `category` that matches one of these.
-export const CATEGORIES = ['Create', 'Convert', 'Study', 'Plan', 'Utilities', 'Web'];
+export const CATEGORIES = ['Office', 'Create', 'Convert', 'Study', 'Plan', 'Utilities', 'Web'];
 
 // Post-consolidation catalogue: several tools were merged into tabbed apps
 // (Images, Converters, Design, Vault). Old paths still work — App.jsx redirects
 // them to the merged app + the right ?tab=.
 export const TOOLS = [
+  // --- Office (document suite, powered by the office WASM core) ---
+  { path: '/word', name: 'Word', icon: '📄', desc: 'Write documents — save as .docx or export PDF, on-device.', keywords: 'word document docx pdf writer processor letter report headings tables office export', category: 'Office' },
+  { path: '/excel', name: 'Excel', icon: '📊', desc: 'Spreadsheets — open .xlsx/.xls/.ods/.csv, save .xlsx/.csv or export PDF.', keywords: 'excel spreadsheet xlsx xls xlsb ods csv pdf sheet cells formula rows columns table office export', category: 'Office' },
+  { path: '/powerpoint', name: 'PowerPoint', icon: '📽️', desc: 'Slide decks — save as .pptx or export PDF, on-device.', keywords: 'powerpoint slides deck presentation pptx pdf bullets layout notes office export slideshow', category: 'Office' },
+  { path: '/pdf', name: 'PDF', icon: '📕', desc: 'Create PDFs from text, merge files, reorder/rotate/delete/extract pages.', keywords: 'pdf create compose merge combine split extract organize reorder rotate delete pages office', category: 'Office' },
+
   // --- Create ---
   { path: '/images', name: 'Images', icon: '🖼️', desc: 'Resize, optimize and batch-convert images — all on-device.', keywords: 'image photo resize optimise compress batch zip png jpeg webp bulk', category: 'Create' },
   { path: '/design', name: 'Design', icon: '🎨', desc: 'Pick colours and build CSS gradients.', keywords: 'colour color hex rgb palette swatch gradient css background design', category: 'Create' },

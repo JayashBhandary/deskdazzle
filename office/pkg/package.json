@@ -1,0 +1,17 @@
+{
+  "name": "office-core",
+  "type": "module",
+  "description": "Desk Dazzle office core: read/write Word (.docx) and Excel (.xlsx) against a native JSON document model. Targets wasm (web).",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "office_core_bg.wasm",
+    "office_core.js",
+    "office_core.d.ts"
+  ],
+  "main": "office_core.js",
+  "types": "office_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

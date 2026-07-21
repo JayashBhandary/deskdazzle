@@ -31,6 +31,7 @@
   },
   "scripts": {
     "wasm": "wasm-pack build core --target web --out-dir pkg --out-name pocketknife_core -- --features wasm",
+    "wasm:office": "wasm-pack build office --target web --out-dir pkg --out-name office_core -- --features wasm",
     "dev": "vite",
     "start": "vite",
     "build": "vite build",

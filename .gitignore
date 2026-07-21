@@ -33,3 +33,4 @@ yarn-error.log*
 
 # Rust build artifacts
 core/target
+office/target

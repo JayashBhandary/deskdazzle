@@ -1,0 +1,47 @@
+[package]
+name = "office-core"
+version = "0.1.0"
+edition = "2021"
+description = "Desk Dazzle office core: read/write Word (.docx) and Excel (.xlsx) against a native JSON document model. Targets wasm (web)."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Enabled by wasm-pack for the browser build.
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# .docx read + write (pure Rust, in-memory buffers — wasm friendly).
+docx-rs = "0.4"
+# .xlsx write (pure Rust, save_to_buffer → Vec<u8>).
+rust_xlsxwriter = "0.89"
+# Spreadsheet read: .xlsx/.xls/.xlsb/.ods auto-detected from an in-memory
+# Cursor (pure Rust).
+calamine = "0.31"
+# .csv read + write (pure Rust).
+csv = "1"
+# PDF generation (low-level, pure Rust, no date/filesystem deps — wasm clean).
+# Uses the standard Helvetica fonts (no embedding) so output opens everywhere
+# and the wasm stays lean.
+pdf-writer = "0.12"
+# .pptx is hand-rolled OOXML — a Zip of XML parts. Pin to the version already in
+# the tree (via calamine) so no extra copy is pulled. miniz_oxide deflate = wasm
+# clean.
+zip = { version = "4", default-features = false, features = ["deflate"] }
+# Decode base64 image payloads carried in the slide model.
+base64 = "0.22"
+lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
+
+wasm-bindgen = { version = "0.2", optional = true }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"

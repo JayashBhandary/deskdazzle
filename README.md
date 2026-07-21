@@ -74,7 +74,7 @@ across devices — everything else never leaves your machine.
 |------|--------|
 | Build | Vite + React 19 (JSX app code, TS libraries) |
 | UI | shadcn/ui + Tailwind CSS v4 + lucide-react + sonner |
-| Core logic | Rust → WebAssembly (`wasm-bindgen` + `wasm-pack`), prebuilt into `core/pkg` |
+| Core logic | Rust → WebAssembly (`wasm-bindgen` + `wasm-pack`) — two modules: `core/pkg` (tasks/search/convert) and `office/pkg` (Word/Excel) |
 | Offline | `vite-plugin-pwa` (Workbox) — full precache incl. the `.wasm` |
 | Cloud (optional) | Firebase Auth + Realtime Database + Hosting |
 
@@ -84,6 +84,18 @@ across devices — everything else never leaves your machine.
 smart-view bucketing, recurrence date math, cross-document full-text search,
 and the text/data conversions. Prebuilt WASM is committed at `core/pkg`, so
 `npm run build` needs **no Rust toolchain**.
+
+**Office core (`/office`)** — a second, independent WASM module that reads and
+writes office documents against a small native document model. The Word, Excel
+and PowerPoint apps edit that model; the core handles import/export: Word ↔
+`.docx` (`docx-rs`), Excel ↔ `.xlsx`/`.xls`/`.ods`/`.csv` (`rust_xlsxwriter`,
+`calamine`, `csv`), PowerPoint ↔ `.pptx` (hand-rolled OOXML over `zip` — titles,
+multi-level bullets, tables, images, speaker notes), and **every app exports
+`.pdf`** via a hand-laid-out renderer (`pdf-writer`, standard fonts, no
+embedding). A dedicated **PDF** app also composes PDFs from text and edits
+existing ones — merge, and reorder / rotate / delete / extract pages (`lopdf`).
+Prebuilt WASM is committed at `office/pkg` and lazy-loaded only when an office
+app opens.
 
 **JS/React** — rendering, routing, Firebase sync, Canvas image work, and
 browser APIs. Conversions and image processing run in a Web Worker.
@@ -121,7 +133,8 @@ npm run preview    # serve the production build — install it, then go offline
 ### Rebuild the Rust core (optional)
 
 ```bash
-npm run wasm       # wasm-pack build core --target web → core/pkg
+npm run wasm         # wasm-pack build core   --target web → core/pkg
+npm run wasm:office  # wasm-pack build office --target web → office/pkg
 ```
 
 ### Deploy

@@ -30,6 +30,10 @@ import CalendarApp from '../apps/calendar/CalendarApp';
 import ColorPicker from '../apps/design/parts/ColorPicker';
 import MediaApp from '../apps/media/MediaApp';
 import TodayApp from '../apps/today/TodayApp';
+import WordApp from '../apps/word/WordApp';
+import ExcelApp from '../apps/excel/ExcelApp';
+import PptApp from '../apps/ppt/PptApp';
+import PdfApp from '../apps/pdf/PdfApp';
 
 // Registry of every widget that can live on the desktop. `w`/`h` are the
 // opening size; `minW`/`minH` are the "safe area" — the window can't be shrunk
@@ -45,9 +49,13 @@ const WIDGETS = {
   calendar: { title: 'Calendar', icon: '📅', component: CalendarApp, w: 300, h: 340, minW: 270, minH: 300 },
   color: { title: 'Color Picker', icon: '🎨', component: ColorPicker, w: 300, h: 400, minW: 260, minH: 340 },
   media: { title: 'Media', icon: '🎧', component: MediaApp, w: 300, h: 140, minW: 260, minH: 120 },
+  word: { title: 'Word', icon: '📄', component: WordApp, w: 560, h: 460, minW: 320, minH: 320 },
+  excel: { title: 'Excel', icon: '📊', component: ExcelApp, w: 620, h: 460, minW: 340, minH: 320 },
+  powerpoint: { title: 'PowerPoint', icon: '📽️', component: PptApp, w: 720, h: 480, minW: 380, minH: 340 },
+  pdf: { title: 'PDF', icon: '📕', component: PdfApp, w: 560, h: 460, minW: 320, minH: 320 },
 };
 
-const ORDER = ['today', 'clock', 'todo', 'notes', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];
+const ORDER = ['today', 'clock', 'todo', 'notes', 'word', 'excel', 'powerpoint', 'pdf', 'calculator', 'weather', 'budget', 'calendar', 'color', 'media'];
 
 // The workspace starts empty — the user opens whatever widgets they want from
 // the dock. Closing them all returns to this clean state (and stays there).

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 // One-line hint per category folder.
 const CATEGORY_HINT = {
+  Office: 'Create, edit and save Word & Excel documents.',
   Create: 'Make images, colours and codes.',
   Convert: 'Reshape data, units and money.',
   Study: 'Learn, revise and stay focused.',
