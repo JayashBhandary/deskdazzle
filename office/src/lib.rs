@@ -5,6 +5,7 @@
 //! `#[wasm_bindgen]` layer in `bindings` is gated behind the `wasm` feature
 //! (enabled by wasm-pack), so the same logic can be exercised natively in tests.
 
+pub mod bundle;
 pub mod csv_io;
 pub mod excel;
 pub mod model;
@@ -98,6 +99,18 @@ pub fn csv_import(text: &str) -> Result<String, String> {
 pub fn csv_export(rows_json: &str) -> Result<String, String> {
     let rows: Vec<Vec<String>> = serde_json::from_str(rows_json).map_err(|e| e.to_string())?;
     csv_io::export(&rows)
+}
+
+/// Pack named byte blobs (concatenated in `data`, split by the manifest's
+/// `len`s) into a .zip. Manifest: `[{"name":String,"len":usize}]`.
+pub fn zip_files(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, String> {
+    bundle::zip_files(manifest_json, data)
+}
+
+/// Lay JPEG images (concatenated in `data`) out as one-per-page PDF pages.
+/// Manifest: `[{"w":i32,"h":i32,"len":usize}]`.
+pub fn images_to_pdf(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, String> {
+    bundle::images_to_pdf(manifest_json, data)
 }
 
 #[cfg(test)]

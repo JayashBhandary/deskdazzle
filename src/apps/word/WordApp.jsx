@@ -9,6 +9,7 @@ import { humanDuration } from '@/lib/image-shared';
 import { FileDown } from 'lucide-react';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { consumeOpen } from '@/lib/openWith';
 import { ShortcutTip } from '@/components/ShortcutTip';
 import { SidebarShell } from '@/components/SidebarShell';
 import { cn } from '@/lib/utils';
@@ -89,6 +90,20 @@ function WordApp() {
     if (narrow) setSidebarOpen(false);
     return id;
   };
+
+  // Opened from Drive ("Open in Word") — import the handed-off .docx bytes.
+  useEffect(() => {
+    const pending = consumeOpen('word');
+    if (!pending) return;
+    (async () => {
+      try {
+        const model = await office.wordImport(pending.bytes);
+        createDoc(pending.name.replace(/\.docx?$/i, ''), model);
+        toast.success(`Opened "${pending.name}"`);
+      } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const rename = (id, name) =>
     setDocs(docs.map((d) => (d.id === id ? { ...d, name } : d)));

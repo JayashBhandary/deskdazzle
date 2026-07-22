@@ -27,6 +27,11 @@ export function excel_import(bytes: Uint8Array): string;
 export function excel_pdf(model_json: string): Uint8Array;
 
 /**
+ * JPEG images (concatenated) -> .pdf bytes (one image per page).
+ */
+export function images_to_pdf(manifest_json: string, data: Uint8Array): Uint8Array;
+
+/**
  * Merge PDF `a` followed by PDF `b`.
  */
 export function pdf_merge(a: Uint8Array, b: Uint8Array): Uint8Array;
@@ -76,6 +81,11 @@ export function word_import(bytes: Uint8Array): string;
  */
 export function word_pdf(model_json: string): Uint8Array;
 
+/**
+ * Named blobs (concatenated) -> .zip bytes.
+ */
+export function zip_files(manifest_json: string, data: Uint8Array): Uint8Array;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -85,6 +95,7 @@ export interface InitOutput {
     readonly excel_export: (a: number, b: number) => [number, number, number, number];
     readonly excel_import: (a: number, b: number) => [number, number, number, number];
     readonly excel_pdf: (a: number, b: number) => [number, number, number, number];
+    readonly images_to_pdf: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly pdf_merge: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly pdf_organize: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly pdf_page_count: (a: number, b: number) => [number, number, number];
@@ -95,6 +106,7 @@ export interface InitOutput {
     readonly word_export: (a: number, b: number) => [number, number, number, number];
     readonly word_import: (a: number, b: number) => [number, number, number, number];
     readonly word_pdf: (a: number, b: number) => [number, number, number, number];
+    readonly zip_files: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

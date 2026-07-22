@@ -76,6 +76,18 @@ pub fn pdf_organize(bytes: &[u8], ops_json: &str) -> Result<Vec<u8>, JsError> {
     crate::pdf_organize(bytes, ops_json).map_err(|e| JsError::new(&e))
 }
 
+/// Named blobs (concatenated) -> .zip bytes.
+#[wasm_bindgen]
+pub fn zip_files(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, JsError> {
+    crate::zip_files(manifest_json, data).map_err(|e| JsError::new(&e))
+}
+
+/// JPEG images (concatenated) -> .pdf bytes (one image per page).
+#[wasm_bindgen]
+pub fn images_to_pdf(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, JsError> {
+    crate::images_to_pdf(manifest_json, data).map_err(|e| JsError::new(&e))
+}
+
 /// CSV text -> grid JSON.
 #[wasm_bindgen]
 pub fn csv_import(text: &str) -> Result<String, JsError> {

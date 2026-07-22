@@ -36,6 +36,7 @@ export const TOOLS = [
   { path: '/budget-tracker', name: 'Budget Tracker', icon: '💳', desc: 'Track income and expenses at a glance.', keywords: 'money finance expense spending budget', category: 'Plan' },
 
   // --- Utilities ---
+  { path: '/drive', name: 'Drive', icon: '🗂️', desc: 'Keep your files on-device — upload, folder, download. Isolated per workspace.', keywords: 'drive files storage upload folder documents images pdf binary local disk filesystem', category: 'Utilities' },
   { path: '/clock', name: 'Clock', icon: '⏰', desc: 'World clock, alarms, stopwatch, timers and focus sessions.', keywords: 'clock time world timezone city alarm stopwatch lap timer countdown pomodoro focus study break', category: 'Utilities' },
   { path: '/vault', name: 'Vault', icon: '🔐', desc: 'Generate strong passwords and encrypt text — 100% on-device.', keywords: 'security password generator random encrypt decrypt crypto cipher aes secret vault', category: 'Utilities' },
   { path: '/calculator', name: 'Calculator', icon: '🧮', desc: 'A simple, fast calculator.', keywords: 'math arithmetic compute numbers', category: 'Utilities' },

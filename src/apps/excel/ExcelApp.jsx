@@ -24,6 +24,7 @@ import { buildCond, condStyle, COND_KINDS } from './cond';
 import { validationAt, checkValue, VALIDATION_KINDS } from './validation';
 import { buildPivot, PIVOT_AGGS } from './pivot';
 import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { consumeOpen } from '@/lib/openWith';
 import { ShortcutTip } from '@/components/ShortcutTip';
 import { SidebarShell } from '@/components/SidebarShell';
 
@@ -117,6 +118,27 @@ function ExcelApp() {
     if (narrow) setSidebarOpen(false);
     return id;
   };
+  // Opened from Drive ("Open in Excel") — import the handed-off spreadsheet.
+  useEffect(() => {
+    const pending = consumeOpen('excel');
+    if (!pending) return;
+    (async () => {
+      try {
+        const base = pending.name.replace(/\.(xlsx?|xlsb|ods|csv)$/i, '');
+        let wb;
+        if (/\.csv$/i.test(pending.name)) {
+          const text = new TextDecoder().decode(pending.bytes);
+          wb = { sheets: [{ name: base.slice(0, 31) || 'Sheet1', rows: await office.csvImport(text) }] };
+        } else {
+          wb = await office.excelImport(pending.bytes);
+        }
+        createBook(base, wb);
+        toast.success(`Opened "${pending.name}"`);
+      } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const rename = (id, name) => setBooks(books.map((b) => (b.id === id ? { ...b, name } : b)));
   const remove = (id) => {
     setBooks(books.filter((b) => b.id !== id));

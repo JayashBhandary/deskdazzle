@@ -10,6 +10,7 @@ import { humanDuration } from '@/lib/image-shared';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { cn } from '@/lib/utils';
 import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { consumeOpen } from '@/lib/openWith';
 import { ShortcutTip } from '@/components/ShortcutTip';
 import { SidebarShell } from '@/components/SidebarShell';
 import { Button } from '@/components/ui/button';
@@ -102,6 +103,20 @@ function PptApp() {
     if (narrow) setSidebarOpen(false);
     return id;
   };
+  // Opened from Drive ("Open in PowerPoint") — import the handed-off .pptx.
+  useEffect(() => {
+    const pending = consumeOpen('powerpoint');
+    if (!pending) return;
+    (async () => {
+      try {
+        const pres = await office.pptImport(pending.bytes);
+        createDeck(pending.name.replace(/\.pptx?$/i, ''), pres);
+        toast.success(`Opened "${pending.name}"`);
+      } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const rename = (id, name) => setDecks(decks.map((d) => (d.id === id ? { ...d, name } : d)));
   const remove = (id) => {
     setDecks(decks.filter((d) => d.id !== id));

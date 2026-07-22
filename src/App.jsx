@@ -25,6 +25,7 @@ import NoteTaking from './pages/NoteTaking';
 import WordProcessor from './pages/WordProcessor';
 import Spreadsheet from './pages/Spreadsheet';
 import Slides from './pages/Slides';
+import Drive from './pages/Drive';
 import PdfTools from './pages/PdfTools';
 import Today from './pages/Today';
 import WeatherApp from './pages/WeatherApp';
@@ -180,6 +181,7 @@ function App() {
             <Route path="/to-do-list"  element={<ToDoList />} />
             <Route path='/flashcards' element={<Flashcards />} />
             <Route path='/clock' element={<Clock />} />
+            <Route path='/drive' element={<Drive />} />
             <Route path='/roadmap' element={<Roadmap />} />
             <Route path='/qrcode-generator' element={<QRCodeGenerator />} />
             <Route path='/calender' element={<Calender />} />
