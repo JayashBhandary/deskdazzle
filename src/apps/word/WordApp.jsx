@@ -5,8 +5,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { humanDuration } from '@/lib/image-shared';
 import { FileDown } from 'lucide-react';
 import { useStore } from '@/lib/store/WorkspaceProvider';
+import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { ShortcutTip } from '@/components/ShortcutTip';
+import { SidebarShell } from '@/components/SidebarShell';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +64,7 @@ function WordApp() {
   const rootRef = useRef(null);
   const [narrow, setNarrow] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  useSidebarShortcut(rootRef, setSidebarOpen);
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
@@ -153,10 +158,12 @@ function WordApp() {
     setBusy(true);
     try {
       const bytes = await readFileBytes(file);
+      const t0 = performance.now();
       const model = await office.wordImport(bytes);
+      const ms = performance.now() - t0;
       const name = file.name.replace(/\.docx$/i, '') || 'Imported';
       createDoc(name, model);
-      toast.success(`Imported "${name}"`);
+      toast.success(`Imported "${name}" · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that file: ${err.message || err}`);
     } finally {
@@ -168,9 +175,11 @@ function WordApp() {
     if (!selected) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.wordExport(selected.doc);
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'document'}.docx`, MIME.docx);
-      toast.success('Saved .docx');
+      toast.success(`Saved .docx · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
     } finally {
@@ -182,9 +191,11 @@ function WordApp() {
     if (!selected) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.wordPdf(selected.doc);
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'document'}.pdf`, MIME.pdf);
-      toast.success('Exported PDF');
+      toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`PDF export failed: ${err.message || err}`);
     } finally {
@@ -207,10 +218,8 @@ function WordApp() {
       />
 
       {/* Sidebar — document list */}
-      {showSidebar && (
-        <aside
-          className={cn('flex min-h-0 flex-col gap-3', narrow ? 'w-full' : 'w-64 shrink-0 pr-3')}
-        >
+      {(narrow ? showSidebar : true) && (
+        <SidebarShell narrow={narrow} open={sidebarOpen} width={256}>
           <div className="flex gap-2">
             <Button size="sm" className="flex-1 gap-1.5" onClick={() => createDoc()}>
               <Plus /> New
@@ -265,7 +274,7 @@ function WordApp() {
               ))
             )}
           </div>
-        </aside>
+        </SidebarShell>
       )}
 
       {/* Detail — the editor */}
@@ -275,15 +284,17 @@ function WordApp() {
             <>
               {/* Title + actions */}
               <div className="mb-2 flex shrink-0 items-center gap-2 border-b pb-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 shrink-0"
-                  onClick={() => setSidebarOpen((o) => !o)}
-                  aria-label={showSidebar ? 'Hide list' : 'Show list'}
-                >
-                  {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
-                </Button>
+                <ShortcutTip label={`${showSidebar ? 'Hide' : 'Show'} sidebar · Shift+B`}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    onClick={() => setSidebarOpen((o) => !o)}
+                    aria-label={showSidebar ? 'Hide list' : 'Show list'}
+                  >
+                    {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
+                  </Button>
+                </ShortcutTip>
                 <Input
                   value={selected.name}
                   onChange={(e) => rename(selected.id, e.target.value)}

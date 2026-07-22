@@ -40,5 +40,6 @@ pub fn import_sheet(text: &str, name: &str) -> Result<Sheet, String> {
     Ok(Sheet {
         name: name.to_string(),
         rows: import(text)?,
+        ..Sheet::default()
     })
 }

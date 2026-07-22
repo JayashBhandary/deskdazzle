@@ -10,8 +10,11 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-# Enabled by wasm-pack for the browser build.
-wasm = ["dep:wasm-bindgen"]
+# Enabled by wasm-pack for the browser build. `rust_xlsxwriter/wasm` switches its
+# timestamp source from std::time::SystemTime::now() (which panics/aborts on
+# wasm32-unknown-unknown → "unreachable") to js_sys::Date::now(), so .xlsx export
+# works in the browser.
+wasm = ["dep:wasm-bindgen", "rust_xlsxwriter/wasm"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

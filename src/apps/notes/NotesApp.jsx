@@ -9,6 +9,9 @@ import { useNotes } from '../../lib/context/notesEntities';
 import { dueLabel } from '@/components/tasks/model';
 import Backlinks from '@/components/context/Backlinks';
 import { cn } from '@/lib/utils';
+import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { ShortcutTip } from '@/components/ShortcutTip';
+import { SidebarShell } from '@/components/SidebarShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -141,6 +144,7 @@ function NotesApp() {
   const bodyRef = useRef(null); // the body <textarea>, for line/selection reads
   const [narrow, setNarrow] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  useSidebarShortcut(rootRef, setSidebarOpen);
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
@@ -161,8 +165,10 @@ function NotesApp() {
     return 290;
   });
   const sepDrag = useRef(null);
+  const [resizing, setResizing] = useState(false); // disables width transition mid-drag
   const onSepDown = (e) => {
     sepDrag.current = { x: e.clientX, w: sidebarWidth };
+    setResizing(true);
     e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault();
   };
@@ -173,6 +179,7 @@ function NotesApp() {
   const onSepUp = (e) => {
     if (!sepDrag.current) return;
     sepDrag.current = null;
+    setResizing(false);
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ }
     setSidebarWidth((w) => {
       try { window.localStorage.setItem(SIDEBAR_W_KEY, String(w)); } catch { /* ignore */ }
@@ -421,11 +428,8 @@ function NotesApp() {
   return (
     <div ref={rootRef} className="@container flex h-full min-h-0">
       {/* Sidebar — the note list */}
-      {showSidebar && (
-        <aside
-          className={cn('flex min-h-0 flex-col gap-3', narrow ? 'w-full' : 'shrink-0 pr-1')}
-          style={narrow ? undefined : { width: sidebarWidth }}
-        >
+      {(narrow ? showSidebar : true) && (
+        <SidebarShell narrow={narrow} open={sidebarOpen} width={sidebarWidth} pad="pr-1" noTransition={resizing}>
           <div className="flex gap-2">
             <Input
               value={query}
@@ -526,7 +530,7 @@ function NotesApp() {
               ))
             )}
           </div>
-        </aside>
+        </SidebarShell>
       )}
 
       {/* Draggable separator — resize the sidebar (wide layout only) */}
@@ -549,16 +553,17 @@ function NotesApp() {
       {showDetail && (
         <section className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !narrow && showSidebar && 'pl-3')}>
           <div className="mb-2 flex shrink-0 items-center gap-2 border-b pb-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 shrink-0"
-              onClick={() => setSidebarOpen((o) => !o)}
-              title={showSidebar ? 'Hide notes list' : 'Show notes list'}
-              aria-label={showSidebar ? 'Hide notes list' : 'Show notes list'}
-            >
-              {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
-            </Button>
+            <ShortcutTip label={`${showSidebar ? 'Hide' : 'Show'} notes list · Shift+B`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0"
+                onClick={() => setSidebarOpen((o) => !o)}
+                aria-label={showSidebar ? 'Hide notes list' : 'Show notes list'}
+              >
+                {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
+              </Button>
+            </ShortcutTip>
 
             {mode === 'edit' ? (
               <>

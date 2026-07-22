@@ -310,6 +310,13 @@ function __wbg_get_imports() {
             const ret = Error(getStringFromWasm0(arg0, arg1));
             return ret;
         },
+        __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
+            throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_now_86c0d4ba3fa605b8: function() {
+            const ret = Date.now();
+            return ret;
+        },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
             const offset = table.grow(4);

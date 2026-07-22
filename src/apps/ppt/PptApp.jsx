@@ -6,8 +6,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { humanDuration } from '@/lib/image-shared';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { cn } from '@/lib/utils';
+import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { ShortcutTip } from '@/components/ShortcutTip';
+import { SidebarShell } from '@/components/SidebarShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,6 +77,7 @@ function PptApp() {
   const rootRef = useRef(null);
   const [narrow, setNarrow] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  useSidebarShortcut(rootRef, setSidebarOpen);
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
@@ -164,10 +169,13 @@ function PptApp() {
     if (!file) return;
     setBusy(true);
     try {
-      const pres = await office.pptImport(await readFileBytes(file));
+      const bytes = await readFileBytes(file);
+      const t0 = performance.now();
+      const pres = await office.pptImport(bytes);
+      const ms = performance.now() - t0;
       const name = file.name.replace(/\.pptx$/i, '') || 'Imported';
       createDeck(name, pres);
-      toast.success(`Imported "${name}"`);
+      toast.success(`Imported "${name}" · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that file: ${err.message || err}`);
     } finally {
@@ -178,9 +186,11 @@ function PptApp() {
     if (!selected) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.pptExport(selected.pres);
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'presentation'}.pptx`, MIME.pptx);
-      toast.success('Saved .pptx');
+      toast.success(`Saved .pptx · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
     } finally {
@@ -191,9 +201,11 @@ function PptApp() {
     if (!selected) return;
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.pptPdf(selected.pres);
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'presentation'}.pdf`, MIME.pdf);
-      toast.success('Exported PDF');
+      toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`PDF export failed: ${err.message || err}`);
     } finally {
@@ -213,8 +225,8 @@ function PptApp() {
       <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={onAddImage} />
 
       {/* Sidebar — deck list */}
-      {showSidebar && (
-        <aside className={cn('flex min-h-0 flex-col gap-3', narrow ? 'w-full' : 'w-60 shrink-0 pr-3')}>
+      {(narrow ? showSidebar : true) && (
+        <SidebarShell narrow={narrow} open={sidebarOpen} width={240}>
           <div className="flex gap-2">
             <Button size="sm" className="flex-1 gap-1.5" onClick={() => createDeck()}>
               <Plus /> New
@@ -261,7 +273,7 @@ function PptApp() {
               ))
             )}
           </div>
-        </aside>
+        </SidebarShell>
       )}
 
       {/* Detail — slide rail + editor */}
@@ -270,9 +282,11 @@ function PptApp() {
           {selected && slide ? (
             <>
               <div className="mb-2 flex shrink-0 items-center gap-2 border-b pb-2">
-                <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => setSidebarOpen((o) => !o)} aria-label={showSidebar ? 'Hide list' : 'Show list'}>
-                  {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
-                </Button>
+                <ShortcutTip label={`${showSidebar ? 'Hide' : 'Show'} sidebar · Shift+B`}>
+                  <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => setSidebarOpen((o) => !o)} aria-label={showSidebar ? 'Hide list' : 'Show list'}>
+                    {showSidebar ? <PanelLeftClose /> : <PanelLeftOpen />}
+                  </Button>
+                </ShortcutTip>
                 <Input value={selected.name} onChange={(e) => rename(selected.id, e.target.value)} className="h-8 min-w-0 flex-1 font-medium" aria-label="Deck name" />
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={exportPdf} disabled={busy} title="Export as PDF"><FileDown /> PDF</Button>
                 <Button size="sm" className="gap-1.5" onClick={exportPptx} disabled={busy} title="Save as .pptx"><Download /> Save</Button>

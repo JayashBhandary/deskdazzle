@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { ThemeContext } from '../App';
+import { useSettings } from '../lib/settings/useSettings';
 import { SHORTCUT_GROUPS } from '../toolsData';
 import CommandPalette from './CommandPalette';
 import { Keyboard } from 'lucide-react';
@@ -27,6 +28,7 @@ function isTyping() {
 
 function Shortcuts() {
   const { setTheme, workspaces = [], activeWorkspaceId, switchWorkspace } = useContext(ThemeContext);
+  const { settings, update } = useSettings();
   const navigate = useNavigate();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -45,6 +47,22 @@ function Shortcuts() {
       e.preventDefault();
       setPaletteOpen((v) => !v);
       return;
+    }
+
+    // ⌘/Ctrl+Shift+D / +H — toggle the collapsible dock / header setting.
+    // Works even while typing, like ⌘K.
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'd') {
+        e.preventDefault();
+        update({ collapsibleDock: !settings.collapsibleDock });
+        return;
+      }
+      if (k === 'h') {
+        e.preventDefault();
+        update({ collapsibleHeader: !settings.collapsibleHeader });
+        return;
+      }
     }
 
     if (e.key === 'Escape') {
@@ -103,7 +121,7 @@ function Shortcuts() {
       e.preventDefault();
       setHelpOpen((v) => !v);
     }
-  }, [navigate, paletteOpen, setTheme, workspaces, activeWorkspaceId, switchWorkspace]);
+  }, [navigate, paletteOpen, setTheme, workspaces, activeWorkspaceId, switchWorkspace, settings.collapsibleDock, settings.collapsibleHeader, update]);
 
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown);

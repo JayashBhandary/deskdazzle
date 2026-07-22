@@ -3,6 +3,8 @@
 //! .docx/.xlsx bytes. Kept intentionally small ("practical" fidelity): the
 //! common structures every editor and reader agree on.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 // ---------------- Word ----------------
@@ -87,12 +89,33 @@ impl Default for Workbook {
 /// parses as a number is written as a number; one starting with `=` is written
 /// as a formula; everything else is text. This keeps the model trivially
 /// editable in a plain `<input>` grid while still producing a real .xlsx.
+///
+/// Presentation (fonts, colours, number formats, column widths, merges, frozen
+/// panes) rides alongside the values in optional maps keyed by `"row:col"` (or a
+/// bare index), so the grid stays a plain string matrix while still round-
+/// tripping rich .xlsx formatting.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Sheet {
     #[serde(default = "default_sheet_name")]
     pub name: String,
     #[serde(default)]
     pub rows: Vec<Vec<String>>,
+    /// Per-cell formatting, keyed `"row:col"`.
+    #[serde(default)]
+    pub fmts: HashMap<String, CellFmt>,
+    /// Column widths in pixels, keyed by column index.
+    #[serde(default)]
+    pub col_widths: HashMap<String, f64>,
+    /// Row heights in pixels, keyed by row index.
+    #[serde(default)]
+    pub row_heights: HashMap<String, f64>,
+    /// Merged regions as `[r1, c1, r2, c2]`.
+    #[serde(default)]
+    pub merges: Vec<[u32; 4]>,
+    /// Frozen panes as `[rows, cols]` (top rows / left cols kept in view).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freeze: Option<[u32; 2]>,
 }
 
 impl Default for Sheet {
@@ -100,8 +123,40 @@ impl Default for Sheet {
         Sheet {
             name: default_sheet_name(),
             rows: Vec::new(),
+            fmts: HashMap::new(),
+            col_widths: HashMap::new(),
+            row_heights: HashMap::new(),
+            merges: Vec::new(),
+            freeze: None,
         }
     }
+}
+
+/// Character + cell formatting for one cell. Every field is optional so a lightly
+/// styled sheet stays small in JSON.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CellFmt {
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub bold: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub italic: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub underline: bool,
+    /// Font colour as "#RRGGBB".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// Fill/background colour as "#RRGGBB".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bg: Option<String>,
+    /// "left" | "center" | "right".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub align: Option<String>,
+    /// Excel number-format code, e.g. "0.00", "$#,##0.00", "0%", "yyyy-mm-dd".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub num_fmt: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub border: bool,
 }
 
 fn default_sheet_name() -> String {

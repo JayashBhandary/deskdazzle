@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { humanDuration } from '@/lib/image-shared';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -84,9 +85,11 @@ function Compose() {
     setBusy(true);
     try {
       const doc = composeToWordDoc(title, body);
+      const t0 = performance.now();
       const bytes = await office.wordPdf(doc);
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${title.trim() || 'document'}.pdf`, MIME.pdf);
-      toast.success('Exported PDF');
+      toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
     } finally {
@@ -146,9 +149,11 @@ function Merge() {
     }
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.pdfMergeAll(files.map((f) => f.bytes));
+      const ms = performance.now() - t0;
       downloadBytes(bytes, 'merged.pdf', MIME.pdf);
-      toast.success(`Merged ${files.length} files`);
+      toast.success(`Merged ${files.length} files · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Merge failed: ${err.message || err}`);
     } finally {
@@ -201,11 +206,13 @@ function Organize() {
     setBusy(true);
     try {
       const bytes = await readFileBytes(file);
+      const t0 = performance.now();
       const count = await office.pdfPageCount(bytes);
+      const ms = performance.now() - t0;
       setSrc(bytes);
       setName(file.name.replace(/\.pdf$/i, ''));
       setPages(Array.from({ length: count }, (_, i) => ({ src: i, rotate: 0 })));
-      toast.success(`Loaded ${count} pages`);
+      toast.success(`Loaded ${count} pages · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't read that PDF: ${err.message || err}`);
     } finally {
@@ -232,9 +239,11 @@ function Organize() {
     }
     setBusy(true);
     try {
+      const t0 = performance.now();
       const bytes = await office.pdfOrganize(src, pages.map((p) => ({ page: p.src, rotate: p.rotate })));
+      const ms = performance.now() - t0;
       downloadBytes(bytes, `${name || 'organized'}.pdf`, MIME.pdf);
-      toast.success('Exported PDF');
+      toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
     } finally {

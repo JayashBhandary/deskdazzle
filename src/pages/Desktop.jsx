@@ -108,6 +108,7 @@ function Desktop() {
   // a Space restores where you left the canvas. Windows store fixed *canvas*
   // coordinates; the transformed layer applies pan + zoom.
   const surfaceRef = useRef(null);
+  const dockRef = useRef(null);
   const [viewStore, setViewStore] = useStore('desktopPan', { x: 0, y: 0, zoom: 1 });
   const readView = (v) => ({ x: v?.x || 0, y: v?.y || 0, zoom: v?.zoom || 1 });
   const [view, setView] = useState(() => readView(viewStore));
@@ -163,6 +164,18 @@ function Desktop() {
     const rect = surfaceRef.current?.getBoundingClientRect();
     const w = rect?.width || window.innerWidth;
     const h = rect?.height || window.innerHeight;
+    // Reserve the strip the dock overlays at the bottom so fitted content isn't
+    // framed behind it. Read the dock's live rect: when collapsed it's
+    // translated off-screen, so the overlap naturally computes to 0. The header
+    // needs no handling here — it's already excluded from the surface height
+    // (via --header-h: pinned it pushes the surface down, collapsed it reclaims
+    // the space), so `h` is header-aware already.
+    let bottomInset = 0;
+    if (rect && dockRef.current) {
+      const dr = dockRef.current.getBoundingClientRect();
+      bottomInset = Math.max(0, rect.bottom - dr.top + 12); // dock overlap + gap
+    }
+    const availH = Math.max(1, h - bottomInset);
     const boxes = windows
       .filter((win) => WIDGETS[win.type] && !win.minimized && !win.maximized)
       .map((win) => {
@@ -185,11 +198,12 @@ function Desktop() {
     const pad = 48;
     const zoom = Math.min(
       ZOOM_MAX,
-      Math.max(ZOOM_MIN, Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY))),
+      Math.max(ZOOM_MIN, Math.min((w - pad * 2) / (maxX - minX), (availH - pad * 2) / (maxY - minY))),
     );
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const nv = { x: w / 2 - cx * zoom, y: h / 2 - cy * zoom, zoom };
+    // Centre within the dock-free region (top of the surface to availH).
+    const nv = { x: w / 2 - cx * zoom, y: availH / 2 - cy * zoom, zoom };
     setView(nv); setViewStore(nv);
   }, [windows, setViewStore]);
 
@@ -461,6 +475,7 @@ function Desktop() {
       )}
 
       <div
+        ref={dockRef}
         onMouseEnter={collapsibleDock ? () => setDockShown(true) : undefined}
         onMouseLeave={collapsibleDock ? () => setDockShown(false) : undefined}
         className={cn(
