@@ -88,6 +88,12 @@ pub fn images_to_pdf(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, JsErro
     crate::images_to_pdf(manifest_json, data).map_err(|e| JsError::new(&e))
 }
 
+/// .zip bytes -> length-prefixed manifest + concatenated file bytes.
+#[wasm_bindgen]
+pub fn unzip(bytes: &[u8]) -> Result<Vec<u8>, JsError> {
+    crate::unzip(bytes).map_err(|e| JsError::new(&e))
+}
+
 /// CSV text -> grid JSON.
 #[wasm_bindgen]
 pub fn csv_import(text: &str) -> Result<String, JsError> {

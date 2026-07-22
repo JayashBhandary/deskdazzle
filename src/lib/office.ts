@@ -22,6 +22,7 @@ import init, {
   pdf_organize as pdf_organize_raw,
   zip_files as zip_files_raw,
   images_to_pdf as images_to_pdf_raw,
+  unzip as unzip_raw,
   csv_export as csv_export_raw,
   csv_import as csv_import_raw,
   version as version_raw,
@@ -212,6 +213,27 @@ export const office = {
     let off = 0
     for (const e of entries) { data.set(e.bytes, off); off += e.bytes.length }
     return images_to_pdf_raw(JSON.stringify(manifest), data)
+  },
+
+  /**
+   * Extract a .zip (Rust/wasm) into a list of files. Unpacks the length-prefixed
+   * blob the core returns — no base64.
+   */
+  async unzip(bytes: Uint8Array): Promise<{ name: string; bytes: Uint8Array }[]> {
+    await loadOffice()
+    const out = unzip_raw(bytes)
+    const view = new DataView(out.buffer, out.byteOffset, out.byteLength)
+    const mlen = view.getUint32(0, true)
+    const manifest: { name: string; len: number }[] = JSON.parse(
+      new TextDecoder().decode(out.subarray(4, 4 + mlen)),
+    )
+    let off = 4 + mlen
+    const files: { name: string; bytes: Uint8Array }[] = []
+    for (const e of manifest) {
+      files.push({ name: e.name, bytes: out.subarray(off, off + e.len) })
+      off += e.len
+    }
+    return files
   },
 
   /** CSV text → grid of cell strings (a single table). */

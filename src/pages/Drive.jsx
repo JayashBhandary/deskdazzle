@@ -11,7 +11,7 @@ function Drive() {
       wide
       icon="🗂️"
       title="Drive"
-      description="Keep your files on-device — upload, organize in folders, download. Isolated per workspace."
+      description="A file explorer on-device — upload, folder, compress/extract (.zip) and convert files. Isolated per workspace."
     >
       <div className="h-[74vh]">
         <DriveApp />
