@@ -421,44 +421,25 @@ function Desktop() {
           </div>
         )}
 
-        {/* Transformed canvas layer: applies pan + zoom to every floating window.
-            It's zero-sized (only its absolutely-positioned children paint), so
-            empty-space clicks fall through to the pan layer below. */}
-        <div
-          className="absolute left-0 top-0 origin-top-left"
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${isMobile ? 1 : view.zoom})` }}
-        >
-          {windows.map((win) => {
-            const meta = WIDGETS[win.type];
-            if (!meta || win.minimized || win.maximized || isMobile) return null;
-            return (
-              <DesktopWindow
-                key={win.id}
-                win={win}
-                meta={meta}
-                isMobile={false}
-                zoom={view.zoom}
-                onFocus={focus}
-                onClose={close}
-                onMinimize={minimize}
-                onMaximize={maximize}
-                onChange={change}
-              />
-            );
-          })}
-        </div>
-
-        {/* Maximized (and all mobile) windows fill the surface — rendered outside
-            the transform so they ignore pan/zoom. */}
+        {/* Every window is rendered exactly once and stays mounted for its whole
+            life — minimise hides it, maximise restyles it, but the React subtree
+            (and each app's in-memory state, e.g. the open Excel workbook) never
+            unmounts. Pan + zoom is applied per floating window via its own
+            transform rather than a wrapping layer, so toggling maximise/minimise
+            can't move a window between parents and force a remount. Floating
+            windows carry z ≥ 1 so empty-space clicks fall through to the pan
+            layer (z-0) below. */}
         {windows.map((win) => {
           const meta = WIDGETS[win.type];
-          if (!meta || win.minimized || !(win.maximized || isMobile)) return null;
+          if (!meta) return null;
           return (
             <DesktopWindow
               key={win.id}
               win={win}
               meta={meta}
               isMobile={isMobile}
+              view={view}
+              zoom={view.zoom}
               onFocus={focus}
               onClose={close}
               onMinimize={minimize}

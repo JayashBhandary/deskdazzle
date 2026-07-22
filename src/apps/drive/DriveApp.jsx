@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, ChevronDown, Download, ExternalLink, File as FileIcon, FileArchive, FileText,
@@ -462,9 +463,12 @@ function DriveApp() {
         </div>
       )}
 
-      {/* Image preview */}
-      {preview && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/70 p-6" onClick={() => { URL.revokeObjectURL(preview.url); setPreview(null); }}>
+      {/* Image preview — portalled to <body> so it escapes the desktop window's
+          transform/z-index stacking context and can truly cover everything
+          (header + dock included). A high z-index alone wouldn't work while it's
+          nested inside the window. */}
+      {preview && createPortal(
+        <div className="fixed inset-0 z-[6200] flex items-center justify-center bg-black/70 p-6" onClick={() => { URL.revokeObjectURL(preview.url); setPreview(null); }}>
           <div className="flex max-h-full max-w-full flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <img src={preview.url} alt={preview.node.name} className="max-h-[80vh] max-w-full rounded-md object-contain" />
             <div className="flex items-center gap-2 text-sm text-white">
@@ -473,7 +477,8 @@ function DriveApp() {
               <Button size="sm" variant="secondary" onClick={() => { URL.revokeObjectURL(preview.url); setPreview(null); }}>Close</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

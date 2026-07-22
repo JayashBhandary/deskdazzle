@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 // A draggable / resizable window hosting a single widget.
 // Drag + resize are implemented with native pointer events (no external
 // dependency) so it works reliably on React 19.
-function DesktopWindow({ win, meta, isMobile, zoom = 1, onFocus, onClose, onMinimize, onMaximize, onChange }) {
+function DesktopWindow({ win, meta, isMobile, view = { x: 0, y: 0 }, zoom = 1, onFocus, onClose, onMinimize, onMaximize, onChange }) {
   // Never render (or persist) a window smaller than its widget's safe area, so
   // layouts saved under an older, smaller floor snap up instead of cropping.
   const minW = meta.minW ?? 240;
@@ -29,8 +29,8 @@ function DesktopWindow({ win, meta, isMobile, zoom = 1, onFocus, onClose, onMini
     }
   }, [win.x, win.y, win.width, win.height, minW, minH]);
 
-  if (win.minimized) return null;
-
+  // A minimised window stays mounted (so its app keeps its state) but hidden;
+  // never early-return null, or React would tear the subtree down.
   const maximized = win.maximized || isMobile;
   const Body = meta.component;
 
@@ -84,12 +84,24 @@ function DesktopWindow({ win, meta, isMobile, zoom = 1, onFocus, onClose, onMini
     setGeo((g) => { onChange(win.id, { width: g.width, height: g.height }); return g; });
   };
 
-  // Non-maximized windows live inside the transformed canvas layer, so they use
-  // raw canvas coordinates (the layer applies pan + zoom). Maximized windows are
-  // rendered outside the layer and simply fill the surface.
+  // Maximized (and all mobile) windows fill the surface with no transform, so
+  // they ignore pan/zoom. Floating windows apply pan + zoom themselves: the
+  // element sits at (0,0) and a top-left-origin transform places its canvas
+  // coordinate on screen and scales it — screen top-left = view + zoom·geo, and
+  // content is scaled by zoom, exactly as the old wrapping layer did. Doing this
+  // per-window (instead of via a shared transformed parent) lets every window
+  // keep a single, stable place in the tree across maximise/minimise.
   const style = maximized
     ? { position: 'absolute', inset: 0, zIndex: win.z }
-    : { position: 'absolute', left: geo.x, top: geo.y, width: geo.width, height: geo.height, zIndex: win.z };
+    : {
+        position: 'absolute', left: 0, top: 0,
+        width: geo.width, height: geo.height,
+        transformOrigin: '0 0',
+        transform: `translate(${view.x + geo.x * zoom}px, ${view.y + geo.y * zoom}px) scale(${zoom})`,
+        zIndex: win.z,
+      };
+  // Minimised: keep it mounted but out of sight and non-interactive.
+  if (win.minimized) style.display = 'none';
 
   const trafficBtn = 'group flex size-3.5 items-center justify-center rounded-full transition-colors [&_svg]:opacity-0 [&_svg]:transition-opacity hover:[&_svg]:opacity-100';
 
