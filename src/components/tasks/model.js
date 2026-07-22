@@ -67,9 +67,11 @@ export function toTask(todo, item) {
 
 export function dueLabel(ms) {
   const d = new Date(ms);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const days = Math.round((d - today) / 86_400_000);
+  // Compare calendar dates (local), not rounded ms — otherwise a due time like
+  // 5pm pushes the fractional-day diff over a boundary and mislabels the day
+  // (e.g. "today 5pm" → "Tomorrow").
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const days = Math.round((startOf(d) - startOf(new Date())) / 86_400_000);
   if (days === 0) return 'Today';
   if (days === 1) return 'Tomorrow';
   if (days === -1) return 'Yesterday';

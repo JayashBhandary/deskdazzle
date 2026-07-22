@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { core } from '@/lib/wasm';
+import { parseTask } from '@/lib/taskNlp';
 import { convertText } from '@/lib/converter-client';
 
 // Styling for rendered markdown output. Covers every element the WASM core can
@@ -370,19 +370,14 @@ function NotesApp() {
       toast.error('Select a line to turn into a task');
       return;
     }
-    let fields = { text: line };
-    try {
-      const p = await core.quickParse(line);
-      fields = {
-        text: p.title || line,
-        due: typeof p.due === 'number' ? p.due : undefined,
-        priority: p.priority,
-        tags: p.tags,
-        recurrence: p.recurrence,
-      };
-    } catch {
-      // wasm unavailable → plain task from the raw line
-    }
+    const p = parseTask(line);
+    const fields = {
+      text: p.title || line,
+      due: typeof p.due === 'number' ? p.due : undefined,
+      priority: p.priority,
+      tags: p.tags,
+      recurrence: p.recurrence,
+    };
     const id = actions.createTask(fields);
     if (id) {
       toast.success(

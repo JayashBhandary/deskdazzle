@@ -10,7 +10,7 @@ function ToDoList() {
       wide
       icon="📝"
       title="Tasks"
-      description="Type naturally — the Rust core parses dates, priorities, tags and recurrence on-device."
+      description="Type naturally — dates, times, priorities, tags and recurrence are parsed on-device."
     >
       <div className="h-[70vh]">
         <TodoApp />
