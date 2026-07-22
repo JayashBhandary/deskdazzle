@@ -113,6 +113,11 @@ pub fn images_to_pdf(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, String
     bundle::images_to_pdf(manifest_json, data)
 }
 
+/// Extract a .zip → `[u32 manifest_len][manifest json][concatenated file bytes]`.
+pub fn unzip(bytes: &[u8]) -> Result<Vec<u8>, String> {
+    bundle::unzip(bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

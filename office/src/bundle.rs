@@ -8,11 +8,11 @@
 //! buffer by each entry's `len` — this keeps the wasm-bindgen surface to a
 //! string + a single `Uint8Array` (no array-of-arrays marshalling).
 
-use std::io::{Cursor, Write};
+use std::io::{Cursor, Read, Write};
 
 use pdf_writer::{Content, Filter, Finish, Name, Pdf, Rect, Ref};
-use serde::Deserialize;
-use zip::{write::SimpleFileOptions, ZipWriter};
+use serde::{Deserialize, Serialize};
+use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
 #[derive(Deserialize)]
 pub struct ZipEntry {
@@ -54,6 +54,43 @@ pub fn zip_files(manifest_json: &str, data: &[u8]) -> Result<Vec<u8>, String> {
     }
     let cursor = zip.finish().map_err(|e| e.to_string())?;
     Ok(cursor.into_inner())
+}
+
+#[derive(Serialize)]
+struct OutEntry {
+    name: String,
+    len: usize,
+}
+
+/// Extract a .zip into a self-describing blob: a little-endian u32 manifest
+/// length, then the manifest JSON (`[{"name","len"}]`), then every file's bytes
+/// concatenated in the same order. The JS side slices this back into files with
+/// no base64 bloat. Directory entries are skipped (their files carry the path in
+/// `name`).
+pub fn unzip(bytes: &[u8]) -> Result<Vec<u8>, String> {
+    let mut zip = ZipArchive::new(Cursor::new(bytes.to_vec())).map_err(|e| e.to_string())?;
+    let mut entries: Vec<OutEntry> = Vec::new();
+    let mut data: Vec<u8> = Vec::new();
+    for i in 0..zip.len() {
+        let mut f = zip.by_index(i).map_err(|e| e.to_string())?;
+        if f.is_dir() {
+            continue;
+        }
+        let name = f
+            .enclosed_name()
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|| f.name().to_string());
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).map_err(|e| e.to_string())?;
+        entries.push(OutEntry { name, len: buf.len() });
+        data.extend_from_slice(&buf);
+    }
+    let manifest = serde_json::to_vec(&entries).map_err(|e| e.to_string())?;
+    let mut out = Vec::with_capacity(4 + manifest.len() + data.len());
+    out.extend_from_slice(&(manifest.len() as u32).to_le_bytes());
+    out.extend_from_slice(&manifest);
+    out.extend_from_slice(&data);
+    Ok(out)
 }
 
 #[derive(Deserialize)]

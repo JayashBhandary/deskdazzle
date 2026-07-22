@@ -13,6 +13,7 @@ export const pdf_page_count: (a: number, b: number) => [number, number, number];
 export const ppt_export: (a: number, b: number) => [number, number, number, number];
 export const ppt_import: (a: number, b: number) => [number, number, number, number];
 export const ppt_pdf: (a: number, b: number) => [number, number, number, number];
+export const unzip: (a: number, b: number) => [number, number, number, number];
 export const version: () => [number, number];
 export const word_export: (a: number, b: number) => [number, number, number, number];
 export const word_import: (a: number, b: number) => [number, number, number, number];

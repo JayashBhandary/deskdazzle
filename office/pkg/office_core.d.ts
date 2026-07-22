@@ -62,6 +62,11 @@ export function ppt_import(bytes: Uint8Array): string;
 export function ppt_pdf(model_json: string): Uint8Array;
 
 /**
+ * .zip bytes -> length-prefixed manifest + concatenated file bytes.
+ */
+export function unzip(bytes: Uint8Array): Uint8Array;
+
+/**
  * Crate version, for a quick "wasm alive" check from the UI.
  */
 export function version(): string;
@@ -102,6 +107,7 @@ export interface InitOutput {
     readonly ppt_export: (a: number, b: number) => [number, number, number, number];
     readonly ppt_import: (a: number, b: number) => [number, number, number, number];
     readonly ppt_pdf: (a: number, b: number) => [number, number, number, number];
+    readonly unzip: (a: number, b: number) => [number, number, number, number];
     readonly version: () => [number, number];
     readonly word_export: (a: number, b: number) => [number, number, number, number];
     readonly word_import: (a: number, b: number) => [number, number, number, number];
