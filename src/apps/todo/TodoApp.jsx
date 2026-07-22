@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { core } from '@/lib/wasm';
+import { parseTask } from '@/lib/taskNlp';
 import { dueLabel, genId, statusOf, toTask } from '@/components/tasks/model';
 import ProjectBar from '@/components/tasks/ProjectBar';
 import ListView from '@/components/tasks/ListView';
@@ -65,13 +66,13 @@ function TodoApp() {
 
   // Live parse preview of the quick-add line ("pay rent friday !high #bills").
   useEffect(() => {
-    let cancelled = false;
     if (!text.trim()) {
       setPreview(null);
       return;
     }
-    core.quickParse(text).then((p) => { if (!cancelled) setPreview(p); }).catch(() => {});
-    return () => { cancelled = true; };
+    // Local-time NLP parse — synchronous, no wasm round-trip, so the preview
+    // updates instantly as you type.
+    setPreview(parseTask(text));
   }, [text]);
 
   const childrenByParent = useMemo(() => {
@@ -204,21 +205,16 @@ function TodoApp() {
 
   const addTodo = async () => {
     if (!text.trim()) return;
-    let todo = { text: text.trim(), isDone: false, createdMs: Date.now() };
-    try {
-      const p = await core.quickParse(text);
-      todo = {
-        text: p.title || text.trim(),
-        isDone: false,
-        createdMs: Date.now(),
-        ...(p.due != null ? { due: p.due } : {}),
-        ...(p.priority && p.priority !== 'none' ? { priority: p.priority } : {}),
-        ...(p.tags?.length ? { tags: p.tags } : {}),
-        ...(p.recurrence ? { recurrence: p.recurrence } : {}),
-      };
-    } catch {
-      // wasm unavailable → plain-text todo
-    }
+    const p = parseTask(text);
+    const todo = {
+      text: p.title || text.trim(),
+      isDone: false,
+      createdMs: Date.now(),
+      ...(p.due != null ? { due: p.due } : {}),
+      ...(p.priority && p.priority !== 'none' ? { priority: p.priority } : {}),
+      ...(p.tags?.length ? { tags: p.tags } : {}),
+      ...(p.recurrence ? { recurrence: p.recurrence } : {}),
+    };
     todo.id = genId();
     todo.status = 'todo';
     todo.order = (todos || []).length;
