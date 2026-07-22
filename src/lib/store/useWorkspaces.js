@@ -3,6 +3,7 @@ import { ref, onValue, update, remove } from 'firebase/database';
 import { rtdb } from '../../firebaseConfig';
 import { DEFAULT_WORKSPACE } from './syncEngine';
 import { getSyncDebounceMs } from './syncConfig';
+import { deleteBlobs } from '../blobStore';
 import { isPageVisible, onVisibilityChange } from './visibility';
 
 // The workspace registry — the list of "Spaces" and which one is active.
@@ -199,6 +200,19 @@ export function useWorkspaces(user) {
       writeActive(DEFAULT_WORKSPACE);
       return DEFAULT_WORKSPACE;
     });
+    // GC the Drive's file blobs for this workspace (they live in IndexedDB, keyed
+    // by node id, so purging localStorage alone would leave them orphaned). Read
+    // the workspace's drive metadata, collect the file ids, delete those blobs.
+    try {
+      const raw = window.localStorage.getItem(`deskdazzle.ws.${id}.driveNodes`);
+      if (raw) {
+        const nodes = JSON.parse(raw);
+        const fileIds = Array.isArray(nodes) ? nodes.filter((n) => n && n.kind === 'file').map((n) => n.id) : [];
+        if (fileIds.length) deleteBlobs(fileIds).catch(() => {});
+      }
+    } catch {
+      /* ignore — orphaned blobs are invisible, just wasted space */
+    }
     // Purge its local data.
     try {
       const prefix = `deskdazzle.ws.${id}.`;

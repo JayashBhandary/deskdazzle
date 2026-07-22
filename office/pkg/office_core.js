@@ -113,6 +113,26 @@ export function excel_pdf(model_json) {
 }
 
 /**
+ * JPEG images (concatenated) -> .pdf bytes (one image per page).
+ * @param {string} manifest_json
+ * @param {Uint8Array} data
+ * @returns {Uint8Array}
+ */
+export function images_to_pdf(manifest_json, data) {
+    const ptr0 = passStringToWasm0(manifest_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.images_to_pdf(ptr0, len0, ptr1, len1);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
  * Merge PDF `a` followed by PDF `b`.
  * @param {Uint8Array} a
  * @param {Uint8Array} b
@@ -302,6 +322,26 @@ export function word_pdf(model_json) {
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;
+}
+
+/**
+ * Named blobs (concatenated) -> .zip bytes.
+ * @param {string} manifest_json
+ * @param {Uint8Array} data
+ * @returns {Uint8Array}
+ */
+export function zip_files(manifest_json, data) {
+    const ptr0 = passStringToWasm0(manifest_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.zip_files(ptr0, len0, ptr1, len1);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
 }
 function __wbg_get_imports() {
     const import0 = {

@@ -20,6 +20,8 @@ import init, {
   pdf_page_count as pdf_page_count_raw,
   pdf_merge as pdf_merge_raw,
   pdf_organize as pdf_organize_raw,
+  zip_files as zip_files_raw,
+  images_to_pdf as images_to_pdf_raw,
   csv_export as csv_export_raw,
   csv_import as csv_import_raw,
   version as version_raw,
@@ -180,6 +182,36 @@ export const office = {
   ): Promise<Uint8Array> {
     await loadOffice()
     return pdf_organize_raw(bytes, JSON.stringify(ops))
+  },
+
+  /**
+   * Pack named blobs into a .zip (Rust/wasm, stored/uncompressed — for
+   * already-compressed page images). Bytes are concatenated in order and split
+   * by each entry's byte length inside the core.
+   */
+  async zipFiles(entries: { name: string; bytes: Uint8Array }[]): Promise<Uint8Array> {
+    await loadOffice()
+    const manifest = entries.map((e) => ({ name: e.name, len: e.bytes.length }))
+    const total = entries.reduce((n, e) => n + e.bytes.length, 0)
+    const data = new Uint8Array(total)
+    let off = 0
+    for (const e of entries) { data.set(e.bytes, off); off += e.bytes.length }
+    return zip_files_raw(JSON.stringify(manifest), data)
+  },
+
+  /**
+   * Combine JPEG images into a PDF, one image per A4 page (Rust/wasm). Each
+   * entry carries the image's pixel dimensions; the JS side transcodes any
+   * source format to JPEG (via canvas) before calling this.
+   */
+  async imagesToPdf(entries: { w: number; h: number; bytes: Uint8Array }[]): Promise<Uint8Array> {
+    await loadOffice()
+    const manifest = entries.map((e) => ({ w: e.w, h: e.h, len: e.bytes.length }))
+    const total = entries.reduce((n, e) => n + e.bytes.length, 0)
+    const data = new Uint8Array(total)
+    let off = 0
+    for (const e of entries) { data.set(e.bytes, off); off += e.bytes.length }
+    return images_to_pdf_raw(JSON.stringify(manifest), data)
   },
 
   /** CSV text → grid of cell strings (a single table). */
