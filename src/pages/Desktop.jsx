@@ -460,7 +460,7 @@ function Desktop() {
 
       {/* Zoom control — desktop & tablet only (panning/zoom disabled on mobile). */}
       {!isMobile && (
-        <div className="fixed bottom-4 right-4 z-[5000] flex items-center gap-0.5 rounded-full border bg-popover/80 p-1 text-popover-foreground shadow-lg backdrop-blur-md">
+        <div className="fixed bottom-[calc(1rem+var(--consent-h,0px))] right-4 z-[5000] flex items-center gap-0.5 rounded-full border bg-popover/80 p-1 text-popover-foreground shadow-lg backdrop-blur-md">
           <button
             type="button"
             title="Zoom out (⌘/Ctrl + −)"
@@ -526,7 +526,10 @@ function Desktop() {
         onMouseEnter={collapsibleDock ? () => setDockShown(true) : undefined}
         onMouseLeave={collapsibleDock ? () => setDockShown(false) : undefined}
         className={cn(
-          'fixed bottom-4 left-1/2 z-[5000] flex max-w-[94vw] -translate-x-1/2 gap-1.5 overflow-x-auto rounded-3xl border bg-popover/80 px-3.5 py-2.5 text-popover-foreground shadow-lg backdrop-blur-md transition-[transform,opacity] duration-300 ease-out',
+          'fixed bottom-[calc(1rem+var(--consent-h,0px))] left-1/2 z-[5000] flex -translate-x-1/2 gap-1.5 overflow-x-auto rounded-3xl border bg-popover/80 px-3.5 py-2.5 text-popover-foreground shadow-lg backdrop-blur-md transition-[transform,opacity] duration-300 ease-out',
+          // Centred dock: keep it clear of the right-anchored zoom control by
+          // reserving room on non-mobile (the zoom control is hidden on mobile).
+          isMobile ? 'max-w-[94vw]' : 'max-w-[min(94vw,calc(100vw-30rem))]',
           !dockVisible && 'pointer-events-none translate-y-[160%] opacity-0',
         )}
       >

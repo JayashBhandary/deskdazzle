@@ -41,6 +41,10 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
+        // Don't let the SPA fallback swallow Firebase's reserved paths — the
+        // Auth OAuth helper lives at /__/auth/handler and must hit Hosting, not
+        // be served the cached app shell (otherwise sign-in silently breaks).
+        navigateFallbackDenylist: [/^\/__\//],
       },
     }),
   ],
