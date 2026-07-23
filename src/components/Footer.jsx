@@ -33,6 +33,7 @@ const LINK_GROUPS = [
       { label: 'Profile', to: '/profile' },
       { label: 'Support the project', to: '/donate' },
       { label: 'Privacy', to: '/privacy' },
+      { label: 'Terms', to: '/terms' },
     ],
   },
   {

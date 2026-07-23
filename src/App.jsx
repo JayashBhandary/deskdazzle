@@ -38,6 +38,7 @@ const Donate = lazy(() => import('./pages/Donate'));
 const Docs = lazy(() => import('./pages/Docs'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, trackEvent } from './firebaseConfig';
@@ -207,6 +208,7 @@ function App() {
             <Route path='/profile' element={<Profile />} />
             <Route path='/settings' element={<Settings />} />
             <Route path='/privacy' element={<Privacy />} />
+            <Route path='/terms' element={<Terms />} />
             {/* Merged apps */}
             <Route path='/images' element={<Images />} />
             <Route path='/converters' element={<Converters />} />
