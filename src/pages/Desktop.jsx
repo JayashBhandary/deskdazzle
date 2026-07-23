@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState, useCallback, useRef } from 'rea
 import { Link } from 'react-router-dom';
 import { ThemeContext } from '../App';
 import DesktopWindow from '../components/DesktopWindow';
-import { Maximize, Minus, Plus } from 'lucide-react';
+import { LayoutGrid, Maximize, Minus, Plus } from 'lucide-react';
 import { useStore } from '../lib/store/WorkspaceProvider';
 import { useSettings } from '../lib/settings/useSettings';
 import { Button } from '@/components/ui/button';
@@ -160,9 +160,11 @@ function Desktop() {
     });
   }, [setViewStore]);
 
-  // Zoom-to-fit: frame every open (non-minimised) floating window in view. With
-  // nothing open, recentre at 100%.
-  const fitView = useCallback(() => {
+  // Frame an explicit set of canvas boxes ({x,y,w,h}) in the view. Shared by
+  // zoom-to-fit and arrange-and-fit — the latter passes the boxes it's about to
+  // move windows into, so the fit is computed from the *new* layout without
+  // waiting for a state round-trip. With no boxes, recentre at 100%.
+  const fitBoxesToView = useCallback((boxes) => {
     const rect = surfaceRef.current?.getBoundingClientRect();
     const w = rect?.width || window.innerWidth;
     const h = rect?.height || window.innerHeight;
@@ -178,16 +180,6 @@ function Desktop() {
       bottomInset = Math.max(0, rect.bottom - dr.top + 12); // dock overlap + gap
     }
     const availH = Math.max(1, h - bottomInset);
-    const boxes = windows
-      .filter((win) => WIDGETS[win.type] && !win.minimized && !win.maximized)
-      .map((win) => {
-        const meta = WIDGETS[win.type];
-        return {
-          x: win.x, y: win.y,
-          w: Math.max(win.width, meta.minW ?? 240),
-          h: Math.max(win.height, meta.minH ?? 190),
-        };
-      });
     if (!boxes.length) {
       const nv = { x: 0, y: 0, zoom: 1 };
       setView(nv); setViewStore(nv);
@@ -207,7 +199,57 @@ function Desktop() {
     // Centre within the dock-free region (top of the surface to availH).
     const nv = { x: w / 2 - cx * zoom, y: availH / 2 - cy * zoom, zoom };
     setView(nv); setViewStore(nv);
-  }, [windows, setViewStore]);
+  }, [setViewStore]);
+
+  // The safe-area box of a floating window (never smaller than its widget's
+  // minimum, matching how DesktopWindow renders it).
+  const winBox = (win) => {
+    const meta = WIDGETS[win.type];
+    return {
+      x: win.x, y: win.y,
+      w: Math.max(win.width, meta.minW ?? 240),
+      h: Math.max(win.height, meta.minH ?? 190),
+    };
+  };
+
+  // Zoom-to-fit: frame every open (non-minimised) floating window in view,
+  // leaving positions untouched. With nothing open, recentre at 100%.
+  const fitView = useCallback(() => {
+    const boxes = windows
+      .filter((win) => WIDGETS[win.type] && !win.minimized && !win.maximized)
+      .map(winBox);
+    fitBoxesToView(boxes);
+  }, [windows, fitBoxesToView]);
+
+  // Arrange-and-fit: lay out every visible window in a non-overlapping grid so
+  // all of them are fully visible, then zoom-to-fit the new layout. Overlapping
+  // / stacked / maximised windows get spread out; sizes are preserved. Windows
+  // keep their rough reading-order (top-left → bottom-right) so the result feels
+  // like a tidy-up of the current arrangement rather than a random reshuffle.
+  const arrangeAndFit = useCallback(() => {
+    const visible = windows.filter((win) => WIDGETS[win.type] && !win.minimized);
+    if (!visible.length) { fitView(); return; }
+    const ordered = [...visible].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const GAP = 28;
+    const cols = Math.ceil(Math.sqrt(ordered.length));
+    const pos = {};
+    const boxes = [];
+    let curX = 0, curY = 0, rowH = 0, col = 0;
+    for (const win of ordered) {
+      const b = winBox(win);
+      pos[win.id] = { x: curX, y: curY };
+      boxes.push({ x: curX, y: curY, w: b.w, h: b.h });
+      curX += b.w + GAP;
+      rowH = Math.max(rowH, b.h);
+      if (++col >= cols) { curX = 0; curY += rowH + GAP; rowH = 0; col = 0; }
+    }
+    setWindows((prev) => prev.map((win) => (
+      pos[win.id]
+        ? { ...win, x: pos[win.id].x, y: pos[win.id].y, minimized: false, maximized: false }
+        : win
+    )));
+    fitBoxesToView(boxes);
+  }, [windows, fitView, fitBoxesToView, setWindows]);
 
   // Keyboard: ⌘/Ctrl + +/-/0 drive OUR zoom (and pre-empt the browser's page
   // zoom). Native pinch / ctrl-wheel zoom is suppressed below so only this
@@ -216,13 +258,18 @@ function Desktop() {
     if (isMobile) return undefined;
     const onKey = (e) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      // Shift+0 arranges every visible window into a non-overlapping grid before
+      // fitting. Match by code (Digit0) as well as key ('0'/')') so it fires
+      // regardless of whether the layout reports the shifted glyph.
+      const isZero = e.key === '0' || e.key === ')' || e.code === 'Digit0';
       if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomTo(view.zoom + ZOOM_STEP); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomTo(view.zoom - ZOOM_STEP); }
-      else if (e.key === '0') { e.preventDefault(); fitView(); }
+      else if (isZero && e.shiftKey) { e.preventDefault(); arrangeAndFit(); }
+      else if (isZero) { e.preventDefault(); fitView(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isMobile, view.zoom, zoomTo, fitView]);
+  }, [isMobile, view.zoom, zoomTo, fitView, arrangeAndFit]);
 
   // Suppress native zoom on the workspace: trackpad pinch + ctrl-wheel arrive as
   // wheel events with ctrlKey; Safari fires gesture* events. Block them so the
@@ -374,44 +421,25 @@ function Desktop() {
           </div>
         )}
 
-        {/* Transformed canvas layer: applies pan + zoom to every floating window.
-            It's zero-sized (only its absolutely-positioned children paint), so
-            empty-space clicks fall through to the pan layer below. */}
-        <div
-          className="absolute left-0 top-0 origin-top-left"
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${isMobile ? 1 : view.zoom})` }}
-        >
-          {windows.map((win) => {
-            const meta = WIDGETS[win.type];
-            if (!meta || win.minimized || win.maximized || isMobile) return null;
-            return (
-              <DesktopWindow
-                key={win.id}
-                win={win}
-                meta={meta}
-                isMobile={false}
-                zoom={view.zoom}
-                onFocus={focus}
-                onClose={close}
-                onMinimize={minimize}
-                onMaximize={maximize}
-                onChange={change}
-              />
-            );
-          })}
-        </div>
-
-        {/* Maximized (and all mobile) windows fill the surface — rendered outside
-            the transform so they ignore pan/zoom. */}
+        {/* Every window is rendered exactly once and stays mounted for its whole
+            life — minimise hides it, maximise restyles it, but the React subtree
+            (and each app's in-memory state, e.g. the open Excel workbook) never
+            unmounts. Pan + zoom is applied per floating window via its own
+            transform rather than a wrapping layer, so toggling maximise/minimise
+            can't move a window between parents and force a remount. Floating
+            windows carry z ≥ 1 so empty-space clicks fall through to the pan
+            layer (z-0) below. */}
         {windows.map((win) => {
           const meta = WIDGETS[win.type];
-          if (!meta || win.minimized || !(win.maximized || isMobile)) return null;
+          if (!meta) return null;
           return (
             <DesktopWindow
               key={win.id}
               win={win}
               meta={meta}
               isMobile={isMobile}
+              view={view}
+              zoom={view.zoom}
               onFocus={focus}
               onClose={close}
               onMinimize={minimize}
@@ -463,6 +491,15 @@ function Desktop() {
             className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <Maximize className="size-4" />
+          </button>
+          <button
+            type="button"
+            title="Tidy up & fit — arrange all windows so none overlap (⌘/Ctrl + Shift + 0)"
+            aria-label="Tidy up and fit windows"
+            onClick={arrangeAndFit}
+            className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <LayoutGrid className="size-4" />
           </button>
         </div>
       )}
