@@ -17,10 +17,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-
-const newId = () => (typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : `d-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
+import { newId } from '@/lib/id';
 
 const MAX_FILE_BYTES = 200 * 1024 * 1024;
 const extOf = (name) => (name.lastIndexOf('.') >= 0 ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '');
@@ -64,6 +61,9 @@ function DriveApp() {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState(null);
+  // Revoke the preview's object URL when it changes or the app unmounts, so an
+  // image preview left open (or the window closed) never leaks the blob.
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url); }, [preview]);
   const [menu, setMenu] = useState(null); // { node, x, y }
   const [convertFor, setConvertFor] = useState(null); // node for convert submenu
   const fileRef = useRef(null);

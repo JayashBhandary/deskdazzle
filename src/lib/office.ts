@@ -36,7 +36,7 @@ export function loadOffice(): Promise<void> {
   if (!ready) {
     ready = init({ module_or_path: wasmUrl }).then(() => undefined)
   }
-  return ready
+  return ready!
 }
 
 // ---- Word model (mirrors office/src/model.rs) ----

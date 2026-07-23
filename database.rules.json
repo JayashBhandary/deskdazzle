@@ -3,7 +3,50 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+
+        "profile": {
+          "displayName": { ".validate": "newData.isString() && newData.val().length <= 256" },
+          "email": { ".validate": "newData.isString() && newData.val().length <= 320" },
+          "photoURL": { ".validate": "newData.isString() && newData.val().length <= 2048" },
+          "lastLogin": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+
+        "theme": { ".validate": "newData.isBoolean()" },
+        "todos": { ".validate": "newData.hasChildren() || !newData.exists()" },
+        "desktop": { ".validate": "newData.hasChildren() || !newData.exists()" },
+        "projects": { ".validate": "newData.hasChildren() || !newData.exists()" },
+
+        "stores": {
+          "$name": {
+            "json": { ".validate": "newData.isString() && newData.val().length <= 921600" },
+            "updatedMs": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "workspaces": {
+          "$ws": {
+            "data": {
+              "theme": { ".validate": "newData.isBoolean()" },
+              "todos": { ".validate": "newData.hasChildren() || !newData.exists()" },
+              "desktop": { ".validate": "newData.hasChildren() || !newData.exists()" },
+              "projects": { ".validate": "newData.hasChildren() || !newData.exists()" },
+              "$other": { ".validate": false }
+            },
+            "stores": {
+              "$name": {
+                "json": { ".validate": "newData.isString() && newData.val().length <= 921600" },
+                "updatedMs": { ".validate": "newData.isNumber()" },
+                "$other": { ".validate": false }
+              }
+            },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
       }
     }
   }

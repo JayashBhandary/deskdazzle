@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { office, downloadBytes, downloadText, readFileBytes, readFileText, MIME } from '@/lib/office';
 import { humanDuration } from '@/lib/image-shared';
+import { newId as genId } from '@/lib/id';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ const OVERSCAN = 6;
 const blankSheet = (name = 'Sheet1') => ({ name, rows: [], fmts: {}, colWidths: {}, merges: [] });
 const blankBook = () => ({ sheets: [blankSheet()] });
 
-const newId = () => `x-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+const newId = () => genId('x');
 
 function colLabel(n) {
   let s = '';

@@ -1,5 +1,6 @@
-import { signInWithPopup, GoogleAuthProvider, signOut, updateProfile } from 'firebase/auth';
-import { ref, update, serverTimestamp } from 'firebase/database';
+import { signInWithPopup, GoogleAuthProvider, signOut, updateProfile, deleteUser } from 'firebase/auth';
+import { ref, update, remove, serverTimestamp } from 'firebase/database';
+import { toast } from 'sonner';
 import { auth, rtdb, trackEvent } from './firebaseConfig';
 
 // Single home for the Google auth flow, shared by the Header and Profile page so
@@ -12,16 +13,27 @@ export async function signInWithGoogle() {
     // One write, no read: refresh the thin profile mirror under the same
     // users/{uid} node that holds theme/todos/desktop. Identity itself always
     // comes from the Auth object — this is just for the record.
+    // Data minimization (GDPR Art. 5): mirror only what the UI actually reads
+    // (displayName / photoURL / lastLogin). Email is available from the Auth
+    // object on demand, so it is deliberately NOT duplicated into the database.
     await update(ref(rtdb, `users/${user.uid}/profile`), {
       displayName: user.displayName,
-      email: user.email,
       photoURL: user.photoURL,
       lastLogin: serverTimestamp(),
     });
     trackEvent('login', { method: 'google' });
     return user;
   } catch (error) {
-    console.log(error?.code || error?.message);
+    const code = error?.code || '';
+    // User dismissed / interrupted the popup — not a failure worth surfacing.
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      return null;
+    }
+    // Offline is handled by the caller's own messaging; only surface real,
+    // online failures here (and never log the raw error object).
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      toast.error('Sign-in failed. Please try again.');
+    }
     return null;
   }
 }
@@ -72,4 +84,36 @@ export async function updateUserProfile({ displayName, photoURL }) {
   await update(ref(rtdb, `users/${user.uid}/profile`), fields);
   trackEvent('profile_update');
   return fields;
+}
+
+// Right to erasure (GDPR Art. 17 / CCPA). Permanently deletes the user's entire
+// cloud record (`users/{uid}` — profile, theme, todos, desktop, projects,
+// stores, workspaces), then deletes the Auth account itself, then flushes all
+// on-device data and reloads. Deleting the RTDB node first guarantees the data
+// is gone even if account deletion later needs interaction.
+//
+// Firebase requires a recent login to delete an account; if the session is
+// stale it throws `auth/requires-recent-login`, so we reauthenticate via the
+// Google popup and retry once.
+export async function deleteAccountAndData() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+
+  await remove(ref(rtdb, `users/${user.uid}`));
+
+  try {
+    await deleteUser(user);
+  } catch (error) {
+    if (error?.code === 'auth/requires-recent-login') {
+      await signInWithPopup(auth, provider);
+      const fresh = auth.currentUser;
+      if (fresh) await deleteUser(fresh);
+    } else {
+      throw error;
+    }
+  }
+
+  trackEvent('account_delete');
+  flushLocalWorkspaceData();
+  if (typeof window !== 'undefined') window.location.assign('/');
 }

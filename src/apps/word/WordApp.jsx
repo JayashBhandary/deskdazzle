@@ -4,6 +4,7 @@ import {
   PanelLeftClose, PanelLeftOpen, Pencil, Plus, Table as TableIcon, Trash2, Underline, Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { newId as genId } from '@/lib/id';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
 import { humanDuration } from '@/lib/image-shared';
 import { FileDown } from 'lucide-react';
@@ -22,8 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 // to type into.
 const blankDoc = () => ({ blocks: [{ type: 'paragraph', runs: [{ text: '' }] }] });
 
-const newId = () =>
-  `w-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+const newId = () => genId('w');
 
 // ---- paragraph run helpers (the editor edits a paragraph as one text field;
 // character formatting is applied to the whole paragraph, which still exports

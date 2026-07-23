@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DOMPurify from 'dompurify';
 import { ListTodo, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkspaceEntities, ENTITY_ROUTES } from '../../lib/context/useWorkspaceEntities';
@@ -10,6 +9,7 @@ import { dueLabel } from '@/components/tasks/model';
 import Backlinks from '@/components/context/Backlinks';
 import { cn } from '@/lib/utils';
 import { useSidebarShortcut } from '@/lib/sidebarShortcut';
+import { sanitizeNoteHtml } from '@/lib/notesSanitize';
 import { ShortcutTip } from '@/components/ShortcutTip';
 import { SidebarShell } from '@/components/SidebarShell';
 import { Button } from '@/components/ui/button';
@@ -227,11 +227,7 @@ function NotesApp() {
     convertText('md2html', linkifyWiki(selected.body, wctx.resolveTitle))
       .then((raw) => {
         if (!cancelled) {
-          setHtml(
-            DOMPurify.sanitize(raw, {
-              ADD_ATTR: ['data-entity-id', 'data-entity-type', 'data-note-missing'],
-            }),
-          );
+          setHtml(sanitizeNoteHtml(raw));
         }
       })
       .catch(() => {

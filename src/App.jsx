@@ -1,48 +1,55 @@
-import React, { useState, createContext, useEffect, useMemo, useRef } from 'react';
+import React, { useState, createContext, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import Apps from './pages/Apps';
-import Home from './pages/Home';
-import Desktop from './pages/Desktop';
 import Header from './components/Header';
-
-// Merged "web-OS" apps (each a tabbed container over the old tools).
-import Images from './pages/Images';
-import Converters from './pages/Converters';
-import Design from './pages/Design';
-import Vault from './pages/Vault';
-
-import BudgetTracker from './pages/BudgetTracker';
-import Calender from './pages/Calender';
-import ToDoList from './pages/ToDoList';
-import Flashcards from './pages/Flashcards';
-import Clock from './pages/Clock';
-import Roadmap from './pages/Roadmap';
 import { Toaster } from '@/components/ui/sonner';
-import QRCodeGenerator from './pages/QRCodeGenerator';
-import TranslationTool from './pages/TranslationTool';
-import TextToSpeech from './pages/TextToSpeech';
-import NoteTaking from './pages/NoteTaking';
-import WordProcessor from './pages/WordProcessor';
-import Spreadsheet from './pages/Spreadsheet';
-import Slides from './pages/Slides';
-import Drive from './pages/Drive';
-import PdfTools from './pages/PdfTools';
-import Today from './pages/Today';
-import WeatherApp from './pages/WeatherApp';
+
+// Route pages are code-split (React.lazy): each page's JS — and the heavy tool
+// it hosts (Excel/Word/PowerPoint/PDF/Drive) — is fetched only when its route is
+// visited, keeping the initial bundle small. Rendered inside a <Suspense>
+// boundary (see RoutedBoundary). Desktop is the landing route ('/') so it stays
+// eager for instant first paint; its own heavy widgets are lazily loaded there.
+import Desktop from './pages/Desktop';
+const Apps = lazy(() => import('./pages/Apps'));
+const Home = lazy(() => import('./pages/Home'));
+const Images = lazy(() => import('./pages/Images'));
+const Converters = lazy(() => import('./pages/Converters'));
+const Design = lazy(() => import('./pages/Design'));
+const Vault = lazy(() => import('./pages/Vault'));
+const BudgetTracker = lazy(() => import('./pages/BudgetTracker'));
+const Calender = lazy(() => import('./pages/Calender'));
+const ToDoList = lazy(() => import('./pages/ToDoList'));
+const Flashcards = lazy(() => import('./pages/Flashcards'));
+const Clock = lazy(() => import('./pages/Clock'));
+const Roadmap = lazy(() => import('./pages/Roadmap'));
+const QRCodeGenerator = lazy(() => import('./pages/QRCodeGenerator'));
+const TranslationTool = lazy(() => import('./pages/TranslationTool'));
+const TextToSpeech = lazy(() => import('./pages/TextToSpeech'));
+const NoteTaking = lazy(() => import('./pages/NoteTaking'));
+const WordProcessor = lazy(() => import('./pages/WordProcessor'));
+const Spreadsheet = lazy(() => import('./pages/Spreadsheet'));
+const Slides = lazy(() => import('./pages/Slides'));
+const Drive = lazy(() => import('./pages/Drive'));
+const PdfTools = lazy(() => import('./pages/PdfTools'));
+const Today = lazy(() => import('./pages/Today'));
+const WeatherApp = lazy(() => import('./pages/WeatherApp'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Calculator = lazy(() => import('./pages/Calculator'));
+const Donate = lazy(() => import('./pages/Donate'));
+const Docs = lazy(() => import('./pages/Docs'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, trackEvent } from './firebaseConfig';
 import { useUserData } from './hooks/useUserData';
 import { useWorkspaces } from './lib/store/useWorkspaces';
-import Profile from './pages/Profile';
-import Calculator from './pages/Calculator';
-import Donate from './pages/Donate';
-import Docs from './pages/Docs';
 import Shortcuts from './components/Shortcuts';
 import Splash from './components/Splash';
 import SettingsRuntime from './components/SettingsRuntime';
 import EntityMigration from './components/EntityMigration';
-import Settings from './pages/Settings';
+import ConsentBanner from './components/ConsentBanner';
+import ErrorBoundary from './components/ErrorBoundary';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import { WorkspaceProvider } from './lib/store/WorkspaceProvider';
 import { WorkspaceGraphProvider } from './lib/context/WorkspaceGraphProvider';
 import { TimeProvider } from './lib/time/TimeProvider';
@@ -69,6 +76,26 @@ function RouteAnalytics() {
     trackEvent('page_view', { page_path: location.pathname });
   }, [location.pathname]);
   return null;
+}
+
+// Error boundary around the routed content: a crash in one tool shows a
+// fallback while Header/Footer stay usable. Keyed on pathname so navigating
+// away clears a caught error automatically.
+function RoutedBoundary({ children }) {
+  const { pathname } = useLocation();
+  return (
+    <ErrorBoundary key={pathname} label="page">
+      <Suspense
+        fallback={
+          <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
+            Loading…
+          </div>
+        }
+      >
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  );
 }
 
 function App() {
@@ -164,12 +191,14 @@ function App() {
         <div className={`app flex min-h-screen flex-col bg-background text-foreground ${theme ? "dark" : "light"}`}>
           <Header />
           <main className="min-h-screen flex-1">
+          <RoutedBoundary>
           <Routes>
             <Route path='/' element={<Desktop />} />
             <Route path='/home' element={<Home />} />
             <Route path='/apps' element={<Apps />} />
             <Route path='/profile' element={<Profile />} />
             <Route path='/settings' element={<Settings />} />
+            <Route path='/privacy' element={<Privacy />} />
             {/* Merged apps */}
             <Route path='/images' element={<Images />} />
             <Route path='/converters' element={<Converters />} />
@@ -212,8 +241,11 @@ function App() {
             <Route path='/markdown-previewer' element={<Navigate to='/note-taking' replace />} />
             <Route path='/pomodoro' element={<Navigate to='/clock?tab=focus' replace />} />
           </Routes>
+          </RoutedBoundary>
           </main>
           <AppFooter/>
+          <ConsentBanner />
+          <PwaUpdatePrompt />
           <Toaster theme={theme ? 'dark' : 'light'} />
         </div>
       </BrowserRouter>

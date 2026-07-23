@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Check, Plus, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '../../lib/store/WorkspaceProvider';
+import { newId as genId } from '@/lib/id';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`;
+const uid = () => genId();
 
 // Blank + three starter templates. Milestone due dates are always left null —
 // the user sets them from the roadmap view.

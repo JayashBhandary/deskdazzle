@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { generatePassword as genPassword } from '@/lib/crypto/password';
 
 export function PasswordPanel() {
   const [password, setPassword] = useState('')
@@ -29,49 +30,9 @@ export function PasswordPanel() {
 
   const generatePassword = () => {
     setErrors({})
-    if (!uppercase && !lowercase && !numbers && !symbols) {
-      return setErrors('At least one character type must be selected')
-    } else if (passwordLength === '0') {
-      return setErrors('Password length cannot be 0')
-    } else if (passwordLength === '') {
-      return setErrors('Invalid password length')
-    } else if (passwordLength > 80) {
-      return setErrors('Password length cannot exceed 80 characters')
-    }
-
-    let password = ''
-    for (let i = 0; i < passwordLength; i++) {
-      let choice = random(0, 3)
-      if (lowercase && choice === 0) {
-        password += randomLower()
-      } else if (uppercase && choice === 1) {
-        password += randomUpper()
-      } else if (symbols && choice === 2) {
-        password += randomSymbol()
-      } else if (numbers && choice === 3) {
-        password += random(0, 9)
-      } else {
-        i--
-      }
-    }
-    setPassword(password)
-  }
-
-  const random = (min = 0, max = 1) => {
-    return Math.floor(Math.random() * (max + 1 - min) + min)
-  }
-
-  const randomLower = () => {
-    return String.fromCharCode(random(97, 122))
-  }
-
-  const randomUpper = () => {
-    return String.fromCharCode(random(65, 90))
-  }
-
-  const randomSymbol = () => {
-    const symbols = "~*$%@#^&!?*'-=/,.{}()[]<>"
-    return symbols[random(0, symbols.length - 1)]
+    const result = genPassword({ length: passwordLength, lowercase, uppercase, numbers, symbols })
+    if (result.error) return setErrors(result.error)
+    setPassword(result.password)
   }
 
   useEffect(() => {

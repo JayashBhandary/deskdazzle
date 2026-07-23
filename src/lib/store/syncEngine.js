@@ -21,6 +21,7 @@ import { rtdb } from '../../firebaseConfig';
 import { bus, TAB_ID } from '../broadcast';
 import { getSyncDebounceMs } from './syncConfig';
 import { isPageVisible, onVisibilityChange } from './visibility';
+import { logger } from '../logger';
 
 export const DEFAULT_WORKSPACE = 'default';
 
@@ -137,7 +138,7 @@ export class SyncedStore {
     if (json.length > MAX_REMOTE_BYTES) {
       if (!this._warnedSize) {
         this._warnedSize = true;
-        console.warn(
+        logger.warn(
           `[syncEngine] store "${this.name}" is ${(json.length / 1024) | 0}KB ` +
             `(> ${MAX_REMOTE_BYTES / 1024}KB) — keeping it local-only, not syncing to the cloud.`,
         );

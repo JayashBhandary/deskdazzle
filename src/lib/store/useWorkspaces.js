@@ -3,6 +3,7 @@ import { ref, onValue, update, remove } from 'firebase/database';
 import { rtdb } from '../../firebaseConfig';
 import { DEFAULT_WORKSPACE } from './syncEngine';
 import { getSyncDebounceMs } from './syncConfig';
+import { newId as genId } from '@/lib/id';
 import { deleteBlobs } from '../blobStore';
 import { isPageVisible, onVisibilityChange } from './visibility';
 
@@ -65,8 +66,7 @@ function writeActive(id) {
   try { window.localStorage.setItem(ACTIVE_KEY, id); } catch { /* ignore */ }
 }
 
-const newId = () =>
-  `ws_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const newId = () => genId('ws');
 
 export function useWorkspaces(user) {
   const initialList = readList();

@@ -15,6 +15,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
+import { newId as genId } from '@/lib/id';
 
 // Every desktop widget is just its app component rendered inside a small,
 // resizable window. Apps live in src/apps/<name>/ and adapt to their container
@@ -28,13 +29,17 @@ import WeatherApp from '../apps/weather/WeatherApp';
 import BudgetApp from '../apps/budget/BudgetApp';
 import CalendarApp from '../apps/calendar/CalendarApp';
 import ColorPicker from '../apps/design/parts/ColorPicker';
-import MediaApp from '../apps/media/MediaApp';
 import TodayApp from '../apps/today/TodayApp';
-import WordApp from '../apps/word/WordApp';
-import ExcelApp from '../apps/excel/ExcelApp';
-import PptApp from '../apps/ppt/PptApp';
-import PdfApp from '../apps/pdf/PdfApp';
-import DriveApp from '../apps/drive/DriveApp';
+
+// Heavy document/media apps are code-split (React.lazy): their code is only
+// fetched when a user actually opens that window, keeping the initial desktop
+// bundle small. DesktopWindow renders them inside a <Suspense> boundary.
+const WordApp = React.lazy(() => import('../apps/word/WordApp'));
+const ExcelApp = React.lazy(() => import('../apps/excel/ExcelApp'));
+const PptApp = React.lazy(() => import('../apps/ppt/PptApp'));
+const PdfApp = React.lazy(() => import('../apps/pdf/PdfApp'));
+const DriveApp = React.lazy(() => import('../apps/drive/DriveApp'));
+const MediaApp = React.lazy(() => import('../apps/media/MediaApp'));
 
 // Registry of every widget that can live on the desktop. `w`/`h` are the
 // opening size; `minW`/`minH` are the "safe area" — the window can't be shrunk
@@ -301,8 +306,7 @@ function Desktop() {
   // Windows are multi-instance: a widget can have several windows open at once,
   // each with a unique id (decoupled from its `type`). Legacy layouts where
   // id === type keep working — they're just the first instance of that type.
-  const newWinId = (type) =>
-    `${type}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+  const newWinId = (type) => genId(type);
   const topZ = (arr) => arr.reduce((m, w) => Math.max(m, w.z || 0), 0);
 
   const addWindow = (prev, type) => {
