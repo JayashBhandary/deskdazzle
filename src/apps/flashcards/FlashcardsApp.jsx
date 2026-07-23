@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '../../lib/store/WorkspaceProvider';
+import { newId as genId } from '@/lib/id';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,10 +21,7 @@ import {
 const DAY_MS = 86_400_000;
 const AGAIN_MS = 600_000; // "Again" comes back in 10 minutes
 
-const uid = () =>
-  typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const uid = () => genId();
 
 // SM-2-style scheduling. grade: 0 Again · 1 Hard · 2 Good · 3 Easy.
 function schedule(card, grade, now) {

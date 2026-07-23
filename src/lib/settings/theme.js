@@ -24,7 +24,9 @@ export function generateDarkFromLight(light) {
   const out = {};
   for (const token of Object.keys(light)) {
     const p = parseOklch(light[token]);
-    if (!p) { out[token] = light[token]; continue; }
+    // Drop unparseable values rather than passing the raw string through — it
+    // must never reach the injected <style> (CSS-injection guard).
+    if (!p) { continue; }
     const newL = clamp(1 - p.l, 0.12, 0.985);
     const damp = SURFACE_TOKENS.has(token) ? 0.9 : 0.95;
     out[token] = formatOklch({ l: newL, c: p.c * damp, h: p.h, alpha: p.alpha });
@@ -33,10 +35,18 @@ export function generateDarkFromLight(light) {
 }
 
 // Build a <style> body that overrides only the tokens the user has customised.
+// Every value is re-validated as an oklch() color and reformatted from parsed
+// components, so an attacker-supplied string (e.g. via an imported settings
+// file) can never break out of the CSS declaration — defense-in-depth on top of
+// normalizeSettings/sanitizeColors.
 export function buildThemeCSS(colors) {
   const block = (obj) => Object.entries(obj || {})
-    .filter(([k, v]) => v && TOKEN_IDS.has(k))
-    .map(([k, v]) => `  --${k}: ${v};`)
+    .filter(([k]) => TOKEN_IDS.has(k))
+    .map(([k, v]) => {
+      const p = parseOklch(v);
+      return p ? `  --${k}: ${formatOklch(p)};` : null;
+    })
+    .filter(Boolean)
     .join('\n');
   let css = '';
   const light = block(colors?.light);

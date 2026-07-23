@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeftRight, WifiOff } from 'lucide-react';
 import ToolPage from '../../../components/ToolPage';
+import { fetchJson } from '@/lib/fetchJson';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,12 +40,9 @@ export function CurrencyPanel() {
   useEffect(() => {
     if (!fromCurrency || !toCurrency) return;
     const api = 'https://api.exchangerate-api.com/v4/latest/';
+    const ctrl = new AbortController();
     let cancelled = false;
-    fetch(`${api}${fromCurrency}`)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
+    fetchJson(`${api}${encodeURIComponent(fromCurrency)}`, { signal: ctrl.signal })
       .then((data) => {
         if (cancelled) return;
         const fromRate = data.rates[fromCurrency];
@@ -55,7 +53,7 @@ export function CurrencyPanel() {
       .catch(() => {
         if (!cancelled) setFetchFailed(true);
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; ctrl.abort(); };
   }, [fromCurrency, toCurrency, inputValue]);
 
   const swap = () => {

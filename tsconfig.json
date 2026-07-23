@@ -14,11 +14,11 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": ["vite/client"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@core/*": ["./core/pkg/*"]
+      "@core/*": ["./core/pkg/*"],
+      "@office/*": ["./office/pkg/*"]
     }
   },
-  "include": ["src", "core/pkg"]
+  "include": ["src", "core/pkg", "office/pkg"]
 }

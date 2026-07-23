@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
 import { humanDuration } from '@/lib/image-shared';
+import { newId as genId } from '@/lib/id';
 import { useStore } from '@/lib/store/WorkspaceProvider';
 import { cn } from '@/lib/utils';
 import { useSidebarShortcut } from '@/lib/sidebarShortcut';
@@ -29,7 +30,7 @@ const newSlide = (layout = 'titleContent') => ({
   layout, title: '', subtitle: '', content: [], notes: '',
 });
 const blankPres = () => ({ slides: [newSlide('title')] });
-const newId = () => `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+const newId = () => genId('p');
 
 // Bullets <-> textarea text. Each line is a bullet; two leading spaces = one
 // indent level (max 4).

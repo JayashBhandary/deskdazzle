@@ -166,7 +166,15 @@ function DesktopWindow({ win, meta, isMobile, view = { x: 0, y: 0 }, zoom = 1, o
           (inputs/textareas), editable content, and anything explicitly marked
           `[data-selectable]` opts back in — see index.css. */}
       <div className="desk-window-body min-h-0 flex-1 select-none overflow-auto p-3">
-        <Body />
+        <React.Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Loading…
+            </div>
+          }
+        >
+          <Body />
+        </React.Suspense>
       </div>
 
       {!maximized && (

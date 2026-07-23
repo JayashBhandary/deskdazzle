@@ -5,10 +5,17 @@
 
 import { ref, update } from 'firebase/database';
 import { rtdb } from '../firebaseConfig';
+import { normalizeSettings } from './settings/theme';
 
 const PREFIX = 'deskdazzle.';
 const FORMAT = 'deskdazzle-backup';
 const VERSION = 1;
+
+// A backup file is untrusted input (shareable, hand-editable). Only keys that
+// match Desk Dazzle's own naming may be imported, and each value is size-capped
+// and re-serialized so nothing exotic gets persisted.
+const KEY_RE = /^deskdazzle\.[\w.:-]+$/;
+const MAX_VALUE_BYTES = 5 * 1024 * 1024; // 5 MB per store, matches localStorage practicality
 
 export function exportWorkspace() {
   const stores = {};
@@ -53,9 +60,23 @@ export async function importWorkspace(data, uid = null) {
   if (!data || data.format !== FORMAT || typeof data.stores !== 'object') {
     throw new Error('Not a Desk Dazzle backup file.');
   }
-  for (const [key, value] of Object.entries(data.stores)) {
-    if (!key.startsWith(PREFIX)) continue;
-    window.localStorage.setItem(key, JSON.stringify(value));
+  for (const [key, rawValue] of Object.entries(data.stores)) {
+    // Reject anything that isn't a well-formed Desk Dazzle key.
+    if (!KEY_RE.test(key)) continue;
+
+    // The settings store drives injected CSS / fonts / scale — always pass it
+    // through the strict normalizer so a tampered file can't inject anything.
+    const value = key === `${PREFIX}settings` ? normalizeSettings(rawValue) : rawValue;
+
+    let serialized;
+    try {
+      serialized = JSON.stringify(value);
+    } catch {
+      continue; // unserializable (cycles, etc.) — skip rather than corrupt
+    }
+    if (serialized === undefined || serialized.length > MAX_VALUE_BYTES) continue;
+
+    window.localStorage.setItem(key, serialized);
   }
   const userdata = data.stores[`${PREFIX}userdata`];
   if (uid && userdata && typeof userdata === 'object') {

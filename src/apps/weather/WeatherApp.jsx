@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Cloud, Droplets, Loader2, Plus, RefreshCw, Trash2, WifiOff, Wind } from 'lucide-react'
 import { useStore } from '@/lib/store/WorkspaceProvider'
+import { fetchJson } from '@/lib/fetchJson'
+import { newId as genId } from '@/lib/id'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,7 +18,7 @@ const WEATHER_CODES = {
   95: ['Thunderstorm', '⛈️'], 96: ['Thunderstorm + hail', '⛈️'], 99: ['Thunderstorm + hail', '⛈️'],
 };
 
-const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const newId = () => genId();
 
 function OfflineCard() {
   return (
@@ -77,7 +79,7 @@ function WeatherApp() {
     try {
       const lats = list.map((c) => c.latitude).join(',');
       const lons = list.map((c) => c.longitude).join(',');
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`).then((r) => r.json());
+      const res = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`);
       const arr = Array.isArray(res) ? res : [res]; // single coord -> object
       const map = {};
       list.forEach((c, i) => { if (arr[i]?.current) map[c.id] = arr[i].current; });
@@ -104,7 +106,7 @@ function WeatherApp() {
     setAdding(true);
     setAddError('');
     try {
-      const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`).then((r) => r.json());
+      const geo = await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`);
       if (!geo.results?.length) {
         setAddError('City not found.');
         return;

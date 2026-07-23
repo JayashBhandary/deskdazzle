@@ -1,9 +1,9 @@
 import React, { useContext, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
-import { Download, LayoutGrid, LogOut, Monitor, Moon, Pencil, Sun, Upload, Wrench } from 'lucide-react';
+import { Download, LayoutGrid, LogOut, Monitor, Moon, Pencil, Sun, Trash2, Upload, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { ThemeContext } from '../App';
-import { signInWithGoogle, signOutUser } from '../auth';
+import { signInWithGoogle, signOutUser, deleteAccountAndData } from '../auth';
 import EditProfileDialog from '../components/EditProfileDialog';
 import ToolPage from '../components/ToolPage';
 import { Badge } from '@/components/ui/badge';
@@ -124,6 +124,8 @@ function Profile() {
   // Firebase reads are issued when this page mounts.
   const { isLoggedIn, user, theme, setTheme, todos, desktop, profile } = useContext(ThemeContext);
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Prefer the live RTDB profile mirror so an edit reflects instantly via the
   // shared listener; fall back to the Auth object.
@@ -155,6 +157,18 @@ function Profile() {
     } catch {
       if (!navigator.onLine) offlineToast();
       else toast.error('Sign-out failed. Please try again.');
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccountAndData();
+      // deleteAccountAndData reloads to '/' on success.
+    } catch (err) {
+      setDeleting(false);
+      if (!navigator.onLine) offlineToast();
+      else toast.error(err instanceof Error ? err.message : 'Could not delete account. Please try again.');
     }
   };
 
@@ -290,12 +304,40 @@ function Profile() {
         </div>
 
         {/* Account actions */}
-        <div>
-          <Button variant='destructive' onClick={handleSignOut}>
+        <div className='flex flex-wrap gap-2'>
+          <Button variant='outline' onClick={handleSignOut}>
             <LogOut /> Sign out
           </Button>
+          <Button variant='destructive' onClick={() => setConfirmDelete(true)}>
+            <Trash2 /> Delete account &amp; data
+          </Button>
         </div>
+        <p className='text-xs text-muted-foreground'>
+          Deleting is permanent: it erases your synced cloud data and your account.{' '}
+          <Link className='text-primary underline underline-offset-4' to='/privacy'>Privacy policy</Link>.
+        </p>
       </div>
+
+      <Dialog open={confirmDelete} onOpenChange={(o) => !deleting && setConfirmDelete(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete account and all data?</DialogTitle>
+            <DialogDescription>
+              This permanently erases your synced cloud data (tasks, layout, notes
+              and app data) and deletes your account. This cannot be undone. You may
+              be asked to sign in again to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setConfirmDelete(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant='destructive' onClick={handleDelete} disabled={deleting}>
+              <Trash2 /> {deleting ? 'Deleting…' : 'Delete everything'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <EditProfileDialog open={editing} onClose={() => setEditing(false)} user={user} profile={profile} />
     </ToolPage>

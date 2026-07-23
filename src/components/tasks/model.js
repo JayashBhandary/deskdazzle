@@ -8,6 +8,8 @@
 // - `isDone` stays authoritative. `status` ('todo'|'doing'|'done') is only an
 //   extension for the board: isDone=true always reads as 'done'.
 
+import { newId } from '@/lib/id';
+
 export const PROJECT_COLORS = [
   '#3b82f6', // blue
   '#8b5cf6', // violet
@@ -33,8 +35,7 @@ export const BOARD_COLUMNS = [
 
 /** Stable unique id for todos/projects. */
 export function genId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return newId('t');
 }
 
 /** isDone is authoritative; `status` only distinguishes todo/doing. */

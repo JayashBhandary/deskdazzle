@@ -12,7 +12,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (not 'autoUpdate'): for an always-open desktop app, silently
+      // swapping the service worker mid-session can break the running tab. We
+      // surface a "new version — reload" toast instead (see PwaUpdatePrompt).
+      registerType: 'prompt',
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
       manifest: {

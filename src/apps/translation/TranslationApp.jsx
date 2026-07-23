@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowLeftRight, Copy, Languages, Loader2, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchJson } from '@/lib/fetchJson';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -69,9 +70,10 @@ function TranslationApp() {
     setStatus('loading');
     setResult('');
     try {
-      const res = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`
-      ).then((r) => r.json());
+      const langpair = `${encodeURIComponent(from)}|${encodeURIComponent(to)}`;
+      const res = await fetchJson(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langpair}`
+      );
       if (res.responseData?.translatedText) {
         setResult(res.responseData.translatedText);
         setStatus('idle');
@@ -79,7 +81,9 @@ function TranslationApp() {
         setStatus('error');
       }
     } catch {
-      setStatus('offline');
+      // Timeout / bad status / parse failure are "error"; only true loss of
+      // connectivity is "offline".
+      setStatus(navigator.onLine ? 'error' : 'offline');
     }
   };
 

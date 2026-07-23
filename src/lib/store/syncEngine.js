@@ -21,6 +21,18 @@ import { rtdb } from '../../firebaseConfig';
 import { bus, TAB_ID } from '../broadcast';
 import { getSyncDebounceMs } from './syncConfig';
 import { isPageVisible, onVisibilityChange } from './visibility';
+import { logger } from '../logger';
+import { isCollection, toEnvelope, fromEnvelope, mergeEnvelopes } from './merge';
+
+// Cheap structural check: does a parsed remote payload look like a merge
+// envelope (vs a plain value / legacy array)?
+const isEnvelope = (x) =>
+  x && typeof x === 'object' && !Array.isArray(x)
+  && x.items && typeof x.items === 'object' && Array.isArray(x.order);
+
+const eq = (a, b) => {
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+};
 
 export const DEFAULT_WORKSPACE = 'default';
 
@@ -51,8 +63,12 @@ export class SyncedStore {
     this.timer = null;
     this._localKey = localKeyOf(workspaceId, name);
     this._metaKey = `${this._localKey}.meta`;
+    this._envKey = `${this._localKey}.env`;
     this.value = this._readLocal();
     this.updatedMs = this._readMeta();
+    // Merge envelope for COLLECTION stores (arrays of {id} objects). null for
+    // scalar/object stores, which keep whole-value last-write-wins. See merge.js.
+    this.env = this._readEnv();
 
     // Another tab mutated the same store → adopt its localStorage value.
     this.offBus = bus.on((msg) => {
@@ -83,10 +99,24 @@ export class SyncedStore {
     }
   }
 
+  _readEnv() {
+    try {
+      const raw = window.localStorage.getItem(this._envKey);
+      return raw !== null ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // localStorage always holds the PLAIN value (apps read it directly for first
+  // paint); the merge envelope is persisted alongside under `.env` so tombstones
+  // and per-item stamps survive a reload. Only the plain value emits to React.
   _writeLocal(value, updatedMs) {
     try {
       window.localStorage.setItem(this._localKey, JSON.stringify(value));
       window.localStorage.setItem(this._metaKey, String(updatedMs));
+      if (this.env) window.localStorage.setItem(this._envKey, JSON.stringify(this.env));
+      else window.localStorage.removeItem(this._envKey);
     } catch {
       // ignore quota / availability errors
     }
@@ -95,6 +125,7 @@ export class SyncedStore {
   _reloadLocal() {
     this.value = this._readLocal();
     this.updatedMs = this._readMeta();
+    this.env = this._readEnv();
     this._emit();
   }
 
@@ -113,6 +144,8 @@ export class SyncedStore {
     const value = typeof next === 'function' ? next(this.value) : next;
     this.value = value;
     this.updatedMs = Date.now();
+    // Maintain the merge envelope for collection stores; scalars clear it.
+    this.env = isCollection(value) ? toEnvelope(value, this.env, this.updatedMs) : null;
     this._writeLocal(value, this.updatedMs);
     bus.dataChanged(this._localKey);
     this._scheduleRemoteWrite();
@@ -130,14 +163,16 @@ export class SyncedStore {
     if (!this.uid) return;
     let json;
     try {
-      json = JSON.stringify(this.value);
+      // Collection stores sync the envelope (per-item merge metadata); scalar /
+      // object stores sync the plain value (whole-value last-write-wins).
+      json = JSON.stringify(this.env ? this.env : this.value);
     } catch {
       return; // unserializable — nothing to sync
     }
     if (json.length > MAX_REMOTE_BYTES) {
       if (!this._warnedSize) {
         this._warnedSize = true;
-        console.warn(
+        logger.warn(
           `[syncEngine] store "${this.name}" is ${(json.length / 1024) | 0}KB ` +
             `(> ${MAX_REMOTE_BYTES / 1024}KB) — keeping it local-only, not syncing to the cloud.`,
         );
@@ -178,22 +213,48 @@ export class SyncedStore {
       const val = snap.val();
       if (!val || typeof val.json !== 'string') {
         // Remote empty but we have local data → seed the cloud copy.
-        if (this.updatedMs > 0) this._scheduleRemoteWrite();
+        if (this.updatedMs > 0 || this.env) this._scheduleRemoteWrite();
         return;
       }
       const remoteMs = Number(val.updatedMs) || 0;
+      let remoteData;
+      try {
+        remoteData = JSON.parse(val.json);
+      } catch {
+        return; // corrupt remote payload — keep local
+      }
+
+      const remoteIsEnv = isEnvelope(remoteData);
+      const localIsColl = this.env != null || isCollection(this.value);
+
+      // --- Collection path: per-item merge (no whole-store clobber) ---
+      if (remoteIsEnv || (localIsColl && Array.isArray(remoteData))) {
+        // Legacy remote (plain array from the old engine) → wrap into an envelope.
+        const remoteEnv = remoteIsEnv ? remoteData : toEnvelope(remoteData, null, remoteMs);
+        const localEnv =
+          this.env || (isCollection(this.value) ? toEnvelope(this.value, null, this.updatedMs) : null);
+        const merged = mergeEnvelopes(localEnv, remoteEnv);
+        const newValue = fromEnvelope(merged);
+        const changed = !eq(newValue, this.value);
+        this.env = merged;
+        this.value = newValue;
+        this.updatedMs = Math.max(this.updatedMs, remoteMs) || Date.now();
+        this._writeLocal(newValue, this.updatedMs);
+        if (changed) { bus.dataChanged(this._localKey); this._emit(); }
+        // If our merge produced anything the cloud doesn't already have, push it
+        // back. Idempotent+commutative merge means this converges (no echo loop).
+        if (!eq(merged, remoteEnv)) this._scheduleRemoteWrite();
+        return;
+      }
+
+      // --- Scalar / object path: whole-value last-write-wins (unchanged) ---
       if (remoteMs > this.updatedMs) {
-        try {
-          const remoteValue = JSON.parse(val.json);
-          this.value = remoteValue;
-          this.updatedMs = remoteMs;
-          this._writeLocal(remoteValue, remoteMs);
-          this._emit();
-        } catch {
-          // corrupt remote payload — keep local
-        }
+        this.value = remoteData;
+        this.updatedMs = remoteMs;
+        this.env = null;
+        this._writeLocal(remoteData, remoteMs);
+        this._emit();
       } else if (this.updatedMs > remoteMs) {
-        // Local is newer than the cloud → push it up.
         this._scheduleRemoteWrite();
       }
     });
