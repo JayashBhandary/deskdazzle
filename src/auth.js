@@ -2,40 +2,54 @@ import { signInWithPopup, GoogleAuthProvider, signOut, updateProfile, deleteUser
 import { ref, update, remove, serverTimestamp } from 'firebase/database';
 import { toast } from 'sonner';
 import { auth, rtdb, trackEvent } from './firebaseConfig';
+import { logger } from './lib/logger';
 
 // Single home for the Google auth flow, shared by the Header and Profile page so
 // the profile-mirror write lives in exactly one place.
 const provider = new GoogleAuthProvider();
 
 export async function signInWithGoogle() {
+  let user;
   try {
-    const { user } = await signInWithPopup(auth, provider);
-    // One write, no read: refresh the thin profile mirror under the same
-    // users/{uid} node that holds theme/todos/desktop. Identity itself always
-    // comes from the Auth object — this is just for the record.
-    // Data minimization (GDPR Art. 5): mirror only what the UI actually reads
-    // (displayName / photoURL / lastLogin). Email is available from the Auth
-    // object on demand, so it is deliberately NOT duplicated into the database.
-    await update(ref(rtdb, `users/${user.uid}/profile`), {
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      lastLogin: serverTimestamp(),
-    });
-    trackEvent('login', { method: 'google' });
-    return user;
+    ({ user } = await signInWithPopup(auth, provider));
   } catch (error) {
     const code = error?.code || '';
     // User dismissed / interrupted the popup — not a failure worth surfacing.
     if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
       return null;
     }
+    // Log the code (not the raw object) so real auth failures are diagnosable —
+    // e.g. auth/unauthorized-domain, auth/operation-not-allowed.
+    logger.error('[auth] Google sign-in failed:', code);
     // Offline is handled by the caller's own messaging; only surface real,
-    // online failures here (and never log the raw error object).
+    // online failures here.
     if (typeof navigator !== 'undefined' && navigator.onLine) {
       toast.error('Sign-in failed. Please try again.');
     }
     return null;
   }
+
+  // Auth succeeded — the user IS signed in. The profile-mirror write is a
+  // best-effort side task; if it throws (RTDB rules / App Check / transient
+  // net) it must NOT be reported as a sign-in failure or null out the user.
+  // One write, no read: refresh the thin profile mirror under the same
+  // users/{uid} node that holds theme/todos/desktop. Identity itself always
+  // comes from the Auth object — this is just for the record.
+  // Data minimization (GDPR Art. 5): mirror only what the UI actually reads
+  // (displayName / photoURL / lastLogin). Email is available from the Auth
+  // object on demand, so it is deliberately NOT duplicated into the database.
+  try {
+    await update(ref(rtdb, `users/${user.uid}/profile`), {
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      lastLogin: serverTimestamp(),
+    });
+  } catch (error) {
+    logger.error('[auth] profile mirror write failed (sign-in still ok):', error?.code || '');
+  }
+
+  trackEvent('login', { method: 'google' });
+  return user;
 }
 
 // Remove every locally-cached workspace slice on this device (all keys under the

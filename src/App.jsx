@@ -144,24 +144,31 @@ function App() {
   const showSplash = !ready && !splashTimedOut;
 
   // Tailwind's `dark:` variant (and portaled shadcn overlays rendered on
-  // document.body) key off a `.dark` class on <html>. We wrap the switch in a
-  // short-lived `theme-transition` class so every colour cross-fades smoothly
-  // (see index.css) — but skip it on the first paint so the initial theme
-  // doesn't animate in.
+  // document.body) key off a `.dark` class on <html>. We cross-fade the switch
+  // via the View Transitions API: the browser snapshots the page once and GPU-
+  // crossfades old→new as two bitmaps (see ::view-transition-* in index.css).
+  // This is O(1) in DOM size — unlike a per-element CSS transition, whose paint
+  // cost scales with the number of open app windows and janks badly. We skip the
+  // animation on first paint and for reduced-motion users (instant swap).
   const firstThemeRender = useRef(true);
   useEffect(() => {
     const root = document.documentElement;
+    const swap = () => root.classList.toggle('dark', !!theme);
+
     if (firstThemeRender.current) {
       firstThemeRender.current = false;
-      root.classList.toggle('dark', !!theme);
+      swap();
       return;
     }
-    root.classList.add('theme-transition');
-    // Flush styles so the browser registers the transition before colours change.
-    void root.offsetWidth;
-    root.classList.toggle('dark', !!theme);
-    const timer = setTimeout(() => root.classList.remove('theme-transition'), 300);
-    return () => clearTimeout(timer);
+
+    const reduceMotion = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (typeof document !== 'undefined' && document.startViewTransition && !reduceMotion) {
+      document.startViewTransition(swap);
+    } else {
+      swap();
+    }
   }, [theme]);
 
   // Memoize the store so consumers only re-render when a value actually

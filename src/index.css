@@ -135,7 +135,7 @@
   }
   /* Native scrollbars. `color-scheme` above only picks the browser's default
      light/dark grey; these rules paint the track/thumb from theme tokens so
-     they track the active theme (and cross-fade with `.theme-transition`).
+     they track the active theme (and cross-fade via the theme View Transition).
      Firefox uses `scrollbar-color`; Chromium/Safari use `::-webkit-scrollbar`. */
   * {
     scrollbar-width: thin;
@@ -162,25 +162,16 @@
   }
 }
 
-/* Smooth theme switch. `App.jsx` adds `.theme-transition` to <html> only for
-   the ~300ms of a light/dark (or system) switch, then removes it — so colours
-   cross-fade everywhere at once without animating on first paint or slowing
-   down per-component hover states. Left unlayered on purpose so it wins over
-   Tailwind's utility-layer `transition-*` for the duration of the switch, and
-   disabled entirely for users who prefer reduced motion. */
-@media (prefers-reduced-motion: no-preference) {
-  .theme-transition,
-  .theme-transition *,
-  .theme-transition *::before,
-  .theme-transition *::after {
-    transition: background-color var(--transition-duration) ease,
-      border-color var(--transition-duration) ease,
-      color var(--transition-duration) ease,
-      fill var(--transition-duration) ease,
-      stroke var(--transition-duration) ease,
-      outline-color var(--transition-duration) ease,
-      box-shadow var(--transition-duration) ease;
-  }
+/* Smooth theme switch. `App.jsx` swaps the `.dark` class inside a View
+   Transition, so the browser GPU-crossfades a single snapshot of the page
+   old→new. Cost is independent of DOM size — unlike a `* { transition }` rule,
+   whose per-node repaint of background-color/color/box-shadow janks hard once
+   many app windows are open. Reduced-motion / unsupported browsers swap
+   instantly (handled in App.jsx). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--transition-duration);
+  animation-timing-function: ease;
 }
 
 /* Desktop widget selection scope. The workspace surface and each widget's

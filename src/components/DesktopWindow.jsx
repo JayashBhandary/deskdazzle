@@ -84,15 +84,20 @@ function DesktopWindow({ win, meta, isMobile, view = { x: 0, y: 0 }, zoom = 1, o
     setGeo((g) => { onChange(win.id, { width: g.width, height: g.height }); return g; });
   };
 
-  // Maximized (and all mobile) windows fill the surface with no transform, so
-  // they ignore pan/zoom. Floating windows apply pan + zoom themselves: the
-  // element sits at (0,0) and a top-left-origin transform places its canvas
-  // coordinate on screen and scales it — screen top-left = view + zoom·geo, and
-  // content is scaled by zoom, exactly as the old wrapping layer did. Doing this
-  // per-window (instead of via a shared transformed parent) lets every window
-  // keep a single, stable place in the tree across maximise/minimise.
+  // Maximized (and all mobile) windows fill the whole VIEWPORT and sit above the
+  // header and dock: `position: fixed` (viewport-relative — no transformed
+  // ancestor traps it, and it escapes the surface's `overflow-hidden`) with a
+  // z-index above all page chrome. The header is z-40 and the dock / zoom
+  // controls are z-[5000], so we base maximized windows well above that; `win.z`
+  // still layers multiple maximized windows relative to each other. Floating
+  // windows apply pan + zoom themselves: the element sits at (0,0) and a
+  // top-left-origin transform places its canvas coordinate on screen and scales
+  // it — screen top-left = view + zoom·geo. Doing this per-window (instead of via
+  // a shared transformed parent) lets every window keep a single, stable place
+  // in the tree across maximise/minimise.
+  const MAXIMIZED_Z_BASE = 100000; // above header (z-40) and dock/controls (z-5000)
   const style = maximized
-    ? { position: 'absolute', inset: 0, zIndex: win.z }
+    ? { position: 'fixed', inset: 0, zIndex: MAXIMIZED_Z_BASE + (win.z || 0) }
     : {
         position: 'absolute', left: 0, top: 0,
         width: geo.width, height: geo.height,
