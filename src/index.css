@@ -133,6 +133,33 @@
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
   }
+  /* Native scrollbars. `color-scheme` above only picks the browser's default
+     light/dark grey; these rules paint the track/thumb from theme tokens so
+     they track the active theme (and cross-fade with `.theme-transition`).
+     Firefox uses `scrollbar-color`; Chromium/Safari use `::-webkit-scrollbar`. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /* Smooth theme switch. `App.jsx` adds `.theme-transition` to <html> only for

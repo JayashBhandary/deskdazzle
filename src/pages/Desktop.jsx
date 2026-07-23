@@ -28,7 +28,7 @@ import CalculatorApp from '../apps/calculator/CalculatorApp';
 import WeatherApp from '../apps/weather/WeatherApp';
 import BudgetApp from '../apps/budget/BudgetApp';
 import CalendarApp from '../apps/calendar/CalendarApp';
-import ColorPicker from '../apps/design/parts/ColorPicker';
+import ColorStudio from '../apps/design/parts/ColorStudio';
 import TodayApp from '../apps/today/TodayApp';
 
 // Heavy document/media apps are code-split (React.lazy): their code is only
@@ -53,8 +53,8 @@ const WIDGETS = {
   weather: { title: 'Weather', icon: '🌦️', component: WeatherApp, w: 300, h: 320, minW: 260, minH: 260 },
   budget: { title: 'Budget', icon: '💳', component: BudgetApp, w: 300, h: 380, minW: 270, minH: 300 },
   calendar: { title: 'Calendar', icon: '📅', component: CalendarApp, w: 300, h: 340, minW: 270, minH: 300 },
-  color: { title: 'Color Picker', icon: '🎨', component: ColorPicker, w: 300, h: 400, minW: 260, minH: 340 },
-  media: { title: 'Media', icon: '🎧', component: MediaApp, w: 300, h: 140, minW: 260, minH: 120 },
+  color: { title: 'Color Studio', icon: '🎨', component: ColorStudio, w: 340, h: 560, minW: 300, minH: 420 },
+  media: { title: 'Media', icon: '🎧', component: MediaApp, w: 380, h: 520, minW: 300, minH: 380 },
   word: { title: 'Word', icon: '📄', component: WordApp, w: 560, h: 460, minW: 320, minH: 320 },
   excel: { title: 'Excel', icon: '📊', component: ExcelApp, w: 620, h: 460, minW: 340, minH: 320 },
   powerpoint: { title: 'PowerPoint', icon: '📽️', component: PptApp, w: 720, h: 480, minW: 380, minH: 340 },
@@ -133,11 +133,15 @@ function Desktop() {
     e.currentTarget.setPointerCapture(e.pointerId);
   };
   const onPanMove = (e) => {
-    if (!panDrag.current) return;
+    // Snapshot the drag ref: the setView updater runs deferred inside React's
+    // reducer, and onPanUp can null panDrag.current before it does — reading the
+    // ref inside the updater would then throw on null.
+    const d = panDrag.current;
+    if (!d) return;
     setView((v) => ({
       ...v,
-      x: panDrag.current.ox + (e.clientX - panDrag.current.px),
-      y: panDrag.current.oy + (e.clientY - panDrag.current.py),
+      x: d.ox + (e.clientX - d.px),
+      y: d.oy + (e.clientY - d.py),
     }));
   };
   const onPanUp = (e) => {
