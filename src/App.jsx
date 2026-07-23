@@ -45,6 +45,7 @@ import { useUserData } from './hooks/useUserData';
 import { useWorkspaces } from './lib/store/useWorkspaces';
 import Shortcuts from './components/Shortcuts';
 import Splash from './components/Splash';
+import WelcomeTour from './components/WelcomeTour';
 import SettingsRuntime from './components/SettingsRuntime';
 import EntityMigration from './components/EntityMigration';
 import ConsentBanner from './components/ConsentBanner';
@@ -246,6 +247,7 @@ function App() {
           <AppFooter/>
           <ConsentBanner />
           <PwaUpdatePrompt />
+          <WelcomeTour blocked={showSplash} />
           <Toaster theme={theme ? 'dark' : 'light'} />
         </div>
       </BrowserRouter>

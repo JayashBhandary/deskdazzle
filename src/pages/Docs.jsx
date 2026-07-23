@@ -1,6 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
 import { TOOLS, SHORTCUT_GROUPS } from '../toolsData';
+import { OPEN_TOUR_EVENT } from '../components/WelcomeTour';
+import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 
 const SECTIONS = [
   { id: 'welcome', label: 'Welcome' },
@@ -88,6 +91,14 @@ function Docs() {
               In a hurry? Press <Kbd>⌘</Kbd> <Kbd>K</Kbd> (or <Kbd>Ctrl</Kbd>{' '}
               <Kbd>K</Kbd>) anywhere to search and jump straight to any tool.
             </Callout>
+            <Button
+              variant='outline'
+              size='sm'
+              className='mt-1'
+              onClick={() => window.dispatchEvent(new Event(OPEN_TOUR_EVENT))}
+            >
+              <Sparkles className='size-4' aria-hidden='true' /> Take the tour
+            </Button>
           </section>
 
           {/* Workspace */}
