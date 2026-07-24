@@ -8,12 +8,12 @@ import DriveApp from '../apps/drive/DriveApp';
 function Drive() {
   return (
     <ToolPage
-      wide
+      fill
       icon="🗂️"
       title="Drive"
       description="A file explorer on-device — upload, folder, compress/extract (.zip) and convert files. Isolated per workspace."
     >
-      <div className="h-[74vh]">
+      <div className="h-full">
         <DriveApp />
       </div>
     </ToolPage>

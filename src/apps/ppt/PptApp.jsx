@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { trackFileOpen, trackFileExport } from '@/lib/analytics';
 import { humanDuration } from '@/lib/image-shared';
 import { newId as genId } from '@/lib/id';
 import { useStore } from '@/lib/store/WorkspaceProvider';
@@ -112,6 +113,7 @@ function PptApp() {
       try {
         const pres = await office.pptImport(pending.bytes);
         createDeck(pending.name.replace(/\.pptx?$/i, ''), pres);
+        trackFileOpen('powerpoint', 'pptx');
         toast.success(`Opened "${pending.name}"`);
       } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
     })();
@@ -191,6 +193,7 @@ function PptApp() {
       const ms = performance.now() - t0;
       const name = file.name.replace(/\.pptx$/i, '') || 'Imported';
       createDeck(name, pres);
+      trackFileOpen('powerpoint', 'pptx');
       toast.success(`Imported "${name}" · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that file: ${err.message || err}`);
@@ -206,6 +209,7 @@ function PptApp() {
       const bytes = await office.pptExport(selected.pres);
       const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'presentation'}.pptx`, MIME.pptx);
+      trackFileExport('powerpoint', 'pptx');
       toast.success(`Saved .pptx · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
@@ -221,6 +225,7 @@ function PptApp() {
       const bytes = await office.pptPdf(selected.pres);
       const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'presentation'}.pdf`, MIME.pdf);
+      trackFileExport('powerpoint', 'pdf');
       toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`PDF export failed: ${err.message || err}`);

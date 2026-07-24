@@ -72,9 +72,11 @@ export const SHORTCUT_GROUPS = [
     title: 'Global',
     items: [
       { keys: ['⌘', 'K'], alt: ['Ctrl', 'K'], desc: 'Open the command palette to search & jump to any tool' },
-      { keys: ['G', 'then', 'H'], desc: 'Go to the Workspace' },
+      { keys: ['G', 'then', 'W'], desc: 'Go to the Workspace' },
+      { keys: ['G', 'then', 'H'], desc: 'Go to Home' },
       { keys: ['G', 'then', 'A'], desc: 'Go to Apps' },
       { keys: ['G', 'then', 'D'], desc: 'Go to the Docs' },
+      { keys: ['G', 'then', 'S'], desc: 'Go to Settings' },
       { keys: ['T'], desc: 'Toggle light / dark theme' },
       { keys: ['⌘', 'Shift', 'D'], alt: ['Ctrl', 'Shift', 'D'], desc: 'Toggle the collapsible dock' },
       { keys: ['⌘', 'Shift', 'H'], alt: ['Ctrl', 'Shift', 'H'], desc: 'Toggle the collapsible header' },

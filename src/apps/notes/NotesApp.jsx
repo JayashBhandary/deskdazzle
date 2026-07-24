@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseTask } from '@/lib/taskNlp';
+import { trackContentCreated } from '@/lib/analytics';
 import { convertText } from '@/lib/converter-client';
 
 // Styling for rendered markdown output. Covers every element the WASM core can
@@ -309,6 +310,7 @@ function NotesApp() {
     setSelectedId(now);
     setMode('preview');
     setShareParams({}, { replace: true });
+    trackContentCreated('note');
     toast.success('Note added from share');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -328,6 +330,7 @@ function NotesApp() {
     } else {
       setNotes([{ id: now, ...fields }, ...notes]);
       setSelectedId(now);
+      trackContentCreated('note');
       toast.success('Note added');
     }
     setMode('preview');
@@ -412,6 +415,7 @@ function NotesApp() {
     const title = quick.trim().split('\n')[0].slice(0, 40);
     setNotes([{ id: now, title, body: quick, tags: [], updatedMs: now }, ...notes]);
     setQuick('');
+    trackContentCreated('note');
     toast.success('Note added');
   };
 

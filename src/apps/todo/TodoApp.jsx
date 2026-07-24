@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { core } from '@/lib/wasm';
 import { parseTask } from '@/lib/taskNlp';
+import { trackContentCreated } from '@/lib/analytics';
 import { dueLabel, genId, statusOf, toTask } from '@/components/tasks/model';
 import ProjectBar from '@/components/tasks/ProjectBar';
 import ListView from '@/components/tasks/ListView';
@@ -221,6 +222,7 @@ function TodoApp() {
     if (selectedProject !== 'all') todo.projectId = selectedProject;
     setTodos([...(todos || []), todo]);
     setText('');
+    trackContentCreated('task');
   };
 
   // ---- project CRUD ----

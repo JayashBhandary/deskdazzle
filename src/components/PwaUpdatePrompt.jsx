@@ -9,10 +9,10 @@ export default function PwaUpdatePrompt() {
   useEffect(() => {
     const updateSW = registerSW({
       onNeedRefresh() {
-        toast('A new version is available', {
+        toast('✨ A new version is available', {
           duration: Infinity,
           action: {
-            label: 'Reload',
+            label: 'Update',
             onClick: () => updateSW(true),
           },
         });

@@ -7,12 +7,12 @@ import PptApp from '../apps/ppt/PptApp';
 function Slides() {
   return (
     <ToolPage
-      wide
+      fill
       icon="📽️"
       title="PowerPoint"
       description="Build slide decks and save them as real .pptx — layouts, bullets, tables, images and notes, all on-device."
     >
-      <div className="h-[76vh]">
+      <div className="h-full">
         <PptApp />
       </div>
     </ToolPage>

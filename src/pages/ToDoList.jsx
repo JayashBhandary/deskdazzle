@@ -7,12 +7,12 @@ import TodoApp from '../apps/todo/TodoApp';
 function ToDoList() {
   return (
     <ToolPage
-      wide
+      fill
       icon="📝"
       title="Tasks"
       description="Type naturally — dates, times, priorities, tags and recurrence are parsed on-device."
     >
-      <div className="h-[70vh]">
+      <div className="h-full">
         <TodoApp />
       </div>
     </ToolPage>

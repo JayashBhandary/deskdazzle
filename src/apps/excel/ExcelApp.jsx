@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, downloadText, readFileBytes, readFileText, MIME } from '@/lib/office';
+import { trackFileOpen, trackFileExport } from '@/lib/analytics';
 import { humanDuration } from '@/lib/image-shared';
 import { newId as genId } from '@/lib/id';
 import { useStore } from '@/lib/store/WorkspaceProvider';
@@ -134,6 +135,7 @@ function ExcelApp() {
           wb = await office.excelImport(pending.bytes);
         }
         createBook(base, wb);
+        trackFileOpen('excel', /\.csv$/i.test(pending.name) ? 'csv' : 'xlsx');
         toast.success(`Opened "${pending.name}"`);
       } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
     })();
@@ -592,6 +594,7 @@ function ExcelApp() {
       }
       const ms = performance.now() - t0;
       createBook(base, wb);
+      trackFileOpen('excel', isCsv ? 'csv' : 'xlsx');
       toast.success(`Imported "${base}" · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that file: ${err.message || err}`);
@@ -608,6 +611,7 @@ function ExcelApp() {
       const ms = performance.now() - t0;
       if (ext === 'csv') downloadText(bytes, `${selected.name || 'workbook'}-${sheet.name}.csv`, MIME.csv);
       else downloadBytes(bytes, `${selected.name || 'workbook'}.${ext}`, MIME[ext]);
+      trackFileExport('excel', ext);
       toast.success(`${ok} · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);

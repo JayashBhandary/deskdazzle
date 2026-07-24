@@ -13,12 +13,12 @@ function Clock() {
 
   return (
     <ToolPage
-      wide
+      fill
       icon="⏰"
       title="Clock"
       description="World clock, alarms, stopwatch, timers and focus sessions — one place for time."
     >
-      <div className="h-[70vh]">
+      <div className="h-full">
         <ClockApp tab={tab} onTabChange={(value) => setSearchParams({ tab: value }, { replace: true })} />
       </div>
     </ToolPage>

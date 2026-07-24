@@ -16,7 +16,11 @@ import {
 // Owns every app-wide keyboard shortcut and the two overlays they drive:
 // the command palette (⌘K) and the shortcut-help sheet (?). Mounted once,
 // inside the router so it can navigate.
-const GO_TARGETS = { h: '/workspace', a: '/apps', d: '/docs' };
+// G-chord destinations — mirror the PWA manifest shortcuts (Workspace, Apps,
+// Docs, Settings) plus Home. Press G, then the letter. G-then-W is distinct
+// from a bare W (which cycles workspaces): the chord only fires within the
+// window after a G.
+const GO_TARGETS = { w: '/workspace', h: '/', a: '/apps', d: '/docs', s: '/settings' };
 const CHORD_WINDOW_MS = 1200;
 
 function isTyping() {

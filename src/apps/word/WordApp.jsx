@@ -6,6 +6,7 @@ import {
 import { toast } from 'sonner';
 import { newId as genId } from '@/lib/id';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { trackFileOpen, trackFileExport } from '@/lib/analytics';
 import { humanDuration } from '@/lib/image-shared';
 import { FileDown } from 'lucide-react';
 import { useStore } from '@/lib/store/WorkspaceProvider';
@@ -99,6 +100,7 @@ function WordApp() {
       try {
         const model = await office.wordImport(pending.bytes);
         createDoc(pending.name.replace(/\.docx?$/i, ''), model);
+        trackFileOpen('word', 'docx');
         toast.success(`Opened "${pending.name}"`);
       } catch (err) { toast.error(`Couldn't open "${pending.name}": ${err.message || err}`); }
     })();
@@ -178,6 +180,7 @@ function WordApp() {
       const ms = performance.now() - t0;
       const name = file.name.replace(/\.docx$/i, '') || 'Imported';
       createDoc(name, model);
+      trackFileOpen('word', 'docx');
       toast.success(`Imported "${name}" · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that file: ${err.message || err}`);
@@ -194,6 +197,7 @@ function WordApp() {
       const bytes = await office.wordExport(selected.doc);
       const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'document'}.docx`, MIME.docx);
+      trackFileExport('word', 'docx');
       toast.success(`Saved .docx · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
@@ -210,6 +214,7 @@ function WordApp() {
       const bytes = await office.wordPdf(selected.doc);
       const ms = performance.now() - t0;
       downloadBytes(bytes, `${selected.name || 'document'}.pdf`, MIME.pdf);
+      trackFileExport('word', 'pdf');
       toast.success(`Exported PDF · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`PDF export failed: ${err.message || err}`);

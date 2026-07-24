@@ -43,6 +43,7 @@ const Terms = lazy(() => import('./pages/Terms'));
 import Footer from './components/Footer';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, trackEvent } from './firebaseConfig';
+import { trackToolOpen, toolFromPath, trackOfflineSession } from './lib/analytics';
 import { useUserData } from './hooks/useUserData';
 import { useWorkspaces } from './lib/store/useWorkspaces';
 import Shortcuts from './components/Shortcuts';
@@ -79,6 +80,10 @@ function RouteAnalytics() {
   const location = useLocation();
   useEffect(() => {
     trackEvent('page_view', { page_path: location.pathname });
+    // A tool route counts as opening that tool; non-tool routes (home, settings,
+    // legal) return null and are page_view-only.
+    const tool = toolFromPath(location.pathname);
+    if (tool) trackToolOpen(tool, 'route');
   }, [location.pathname]);
   return null;
 }
@@ -118,6 +123,16 @@ function App() {
       setAuthReady(true);
     });
     return () => unsubscribe();
+  }, []);
+
+  // Offline-usage signal — DeskDazzle's core promise. Log once if we load
+  // offline, and once when the connection drops mid-session.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) trackOfflineSession();
+    const onOffline = () => trackOfflineSession();
+    window.addEventListener('offline', onOffline);
+    return () => window.removeEventListener('offline', onOffline);
   }, []);
 
   // Workspaces ("Spaces") give per-workspace data isolation. The active
@@ -204,7 +219,7 @@ function App() {
         <EntityMigration />
         <div className={`app flex min-h-screen flex-col bg-background text-foreground ${theme ? "dark" : "light"}`}>
           <Header />
-          <main className="min-h-screen flex-1">
+          <main className="flex-1">
           <RoutedBoundary>
           <Routes>
             <Route path='/' element={<Home />} />

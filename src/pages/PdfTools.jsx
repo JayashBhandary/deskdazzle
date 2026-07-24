@@ -8,12 +8,12 @@ import PdfApp from '../apps/pdf/PdfApp';
 function PdfTools() {
   return (
     <ToolPage
-      wide
+      fill
       icon="📕"
       title="PDF"
       description="Create PDFs from text, merge files, and reorder / rotate / delete / extract pages — all on-device."
     >
-      <div className="h-[76vh]">
+      <div className="h-full">
         <PdfApp />
       </div>
     </ToolPage>

@@ -7,12 +7,12 @@ import NotesApp from '../apps/notes/NotesApp';
 function NoteTaking() {
   return (
     <ToolPage
-      wide
+      fill
       icon="💡"
       title="Notes"
       description="Markdown notes with [[wiki links]] — stored on this device, searchable from the command palette."
     >
-      <div className="h-[70vh]">
+      <div className="h-full">
         <NotesApp />
       </div>
     </ToolPage>

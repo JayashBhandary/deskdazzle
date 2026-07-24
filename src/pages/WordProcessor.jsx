@@ -7,12 +7,12 @@ import WordApp from '../apps/word/WordApp';
 function WordProcessor() {
   return (
     <ToolPage
-      wide
+      fill
       icon="📄"
       title="Word"
       description="Write documents and save them as real .docx — headings, lists, tables and formatting, all on-device."
     >
-      <div className="h-[74vh]">
+      <div className="h-full">
         <WordApp />
       </div>
     </ToolPage>

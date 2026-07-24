@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { office, downloadBytes, readFileBytes, MIME } from '@/lib/office';
+import { trackFileOpen, trackFileExport } from '@/lib/analytics';
 import { humanDuration } from '@/lib/image-shared';
 import { openPdf, renderPageToCanvas, renderPageToBlob } from '@/lib/pdfjs';
 import { canConvertToPdf, fileToPdf } from './pdfShared';
@@ -45,6 +46,7 @@ function PdfApp() {
       setBytes(buf);
       setDoc(d);
       setName((fname || 'document').replace(/\.pdf$/i, ''));
+      trackFileOpen('pdf', 'pdf');
       toast.success(`Opened ${d.numPages} page${d.numPages > 1 ? 's' : ''} · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Couldn't open that PDF: ${err.message || err}`);
@@ -224,6 +226,7 @@ function OrganizeTab({ doc, bytes, name }) {
       const out = await office.pdfOrganize(bytes, pages.map((p) => ({ page: p.src, rotate: p.rotate })));
       const ms = performance.now() - t0;
       downloadBytes(out, `${name || 'organized'}.pdf`, MIME.pdf);
+      trackFileExport('pdf', 'organize');
       toast.success(`Exported ${pages.length} pages · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Export failed: ${err.message || err}`);
@@ -375,6 +378,7 @@ function ToPdfTab() {
         downloadBytes(zip, 'converted-pdfs.zip', 'application/zip');
       }
       const ms = performance.now() - t0;
+      trackFileExport('pdf', 'convert');
       toast.success(`Converted ${pdfs.length} file${pdfs.length > 1 ? 's' : ''} · ${humanDuration(ms)}`);
     } catch (err) {
       toast.error(`Convert failed: ${err.message || err}`);

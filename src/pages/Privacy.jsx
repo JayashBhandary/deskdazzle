@@ -55,8 +55,10 @@ export default function Privacy() {
         <Section title="Analytics (consent required)">
           <p>
             With your consent we use Google Analytics for Firebase to record
-            anonymous usage (page views, sign-in/out events). Nothing is collected
-            until you opt in, and you can change your choice here at any time:
+            anonymous usage — page views, sign-in/out, which tools you open, and
+            aggregate actions like opening or exporting a file (never the file, its
+            name, or its contents). Nothing is collected until you opt in, and you
+            can change your choice here at any time:
           </p>
           <p className="pt-1 text-foreground">
             Current choice:{' '}

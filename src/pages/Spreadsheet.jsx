@@ -7,12 +7,12 @@ import ExcelApp from '../apps/excel/ExcelApp';
 function Spreadsheet() {
   return (
     <ToolPage
-      wide
+      fill
       icon="📊"
       title="Excel"
       description="Build spreadsheets and save them as real .xlsx — multiple sheets, numbers and =formulas, all on-device."
     >
-      <div className="h-[74vh]">
+      <div className="h-full">
         <ExcelApp />
       </div>
     </ToolPage>
