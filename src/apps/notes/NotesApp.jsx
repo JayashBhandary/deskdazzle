@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ListTodo, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Save, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkspaceEntities, ENTITY_ROUTES } from '../../lib/context/useWorkspaceEntities';
@@ -290,6 +290,28 @@ function NotesApp() {
     setMode('edit');
     if (narrow) setSidebarOpen(false);
   };
+
+  // PWA Share Target: content shared to DeskDazzle from another app (see
+  // `share_target` in vite.config.js) lands on this route as ?title/&text/&url.
+  // Capture it into a new note exactly once, then clear the params so a refresh
+  // can't duplicate it. Uses the functional setter, so it merges against the
+  // latest notes even if the store is still hydrating.
+  const [shareParams, setShareParams] = useSearchParams();
+  useEffect(() => {
+    const sTitle = shareParams.get('title');
+    const sText = shareParams.get('text');
+    const sUrl = shareParams.get('url');
+    if (!sTitle && !sText && !sUrl) return;
+    const now = Date.now();
+    const title = (sTitle || sText || sUrl || 'Shared note').trim().split('\n')[0].slice(0, 60);
+    const body = [sText, sUrl].filter(Boolean).join('\n\n');
+    setNotes((prev) => [{ id: now, title, body, tags: [], updatedMs: now }, ...prev]);
+    setSelectedId(now);
+    setMode('preview');
+    setShareParams({}, { replace: true });
+    toast.success('Note added from share');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = () => {
     if (!draft.title.trim() && !draft.body.trim()) return;

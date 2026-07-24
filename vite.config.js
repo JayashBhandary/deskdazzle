@@ -54,6 +54,56 @@ export default defineConfig({
           { name: 'Documentation', short_name: 'Docs', url: '/docs' },
           { name: 'Settings', short_name: 'Settings', url: '/settings' },
         ],
+        // OS "Open with DeskDazzle" for office/PDF files. The browser launches
+        // the app at `action`, then delivers the file handles to the in-app
+        // `launchQueue` consumer (src/components/FileHandler.jsx), which reads
+        // the bytes on-device and routes them to the owning app. `action` points
+        // at /workspace (not an app route) so the target app fresh-mounts and
+        // imports reliably — see FileHandler for the rationale.
+        file_handlers: [
+          {
+            action: '/workspace',
+            accept: {
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            },
+          },
+          {
+            action: '/workspace',
+            accept: {
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+              'application/vnd.ms-excel': ['.xls', '.xlsb'],
+              'application/vnd.oasis.opendocument.spreadsheet': ['.ods'],
+              'text/csv': ['.csv'],
+            },
+          },
+          {
+            action: '/workspace',
+            accept: {
+              'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+            },
+          },
+          {
+            action: '/workspace',
+            accept: { 'application/pdf': ['.pdf'] },
+          },
+        ],
+        // Android/desktop share sheet → "Share to DeskDazzle" for text/links.
+        // GET keeps it SW-free: the browser navigates to the notes route with
+        // the shared fields as query params, which NotesApp turns into a note.
+        share_target: {
+          action: '/note-taking',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
+        // Install-dialog previews. `wide` drives the richer desktop install card
+        // (Chrome/Edge); `narrow` the mobile sheet. First of each form_factor
+        // shows largest, so lead with the signature Workspace surface.
+        screenshots: [
+          { src: 'screenshots/desktop-workspace.png', sizes: '1865x956', type: 'image/png', form_factor: 'wide', label: 'Your widget workspace' },
+          { src: 'screenshots/desktop-excel.png', sizes: '1865x956', type: 'image/png', form_factor: 'wide', label: 'Real spreadsheets, on-device' },
+          { src: 'screenshots/mobile-workspace.png', sizes: '402x864', type: 'image/png', form_factor: 'narrow', label: 'Works offline, on any device' },
+          { src: 'screenshots/mobile-today.png', sizes: '402x864', type: 'image/png', form_factor: 'narrow', label: 'One agenda across everything' },
+        ],
       },
       workbox: {
         // Precache the shell *including the wasm core* so every tool keeps

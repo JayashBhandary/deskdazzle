@@ -51,6 +51,8 @@ import WelcomeTour from './components/WelcomeTour';
 import SettingsRuntime from './components/SettingsRuntime';
 import EntityMigration from './components/EntityMigration';
 import ConsentBanner from './components/ConsentBanner';
+import FileHandler from './components/FileHandler';
+import AppBadge from './components/AppBadge';
 import ErrorBoundary from './components/ErrorBoundary';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import { WorkspaceProvider } from './lib/store/WorkspaceProvider';
@@ -195,6 +197,8 @@ function App() {
       <Splash show={showSplash} />
       <BrowserRouter>
         <RouteAnalytics />
+        <FileHandler />
+        <AppBadge />
         <Shortcuts />
         <SettingsRuntime />
         <EntityMigration />
