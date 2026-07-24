@@ -6,11 +6,12 @@ import { Toaster } from '@/components/ui/sonner';
 // Route pages are code-split (React.lazy): each page's JS — and the heavy tool
 // it hosts (Excel/Word/PowerPoint/PDF/Drive) — is fetched only when its route is
 // visited, keeping the initial bundle small. Rendered inside a <Suspense>
-// boundary (see RoutedBoundary). Desktop is the landing route ('/') so it stays
-// eager for instant first paint; its own heavy widgets are lazily loaded there.
-import Desktop from './pages/Desktop';
+// boundary (see RoutedBoundary). Home is the landing route ('/') so it stays
+// eager for instant first paint; the Desktop ("Workspace") now lives at
+// '/workspace' and is lazily loaded along with its heavy widgets.
+import Home from './pages/Home';
+const Desktop = lazy(() => import('./pages/Desktop'));
 const Apps = lazy(() => import('./pages/Apps'));
-const Home = lazy(() => import('./pages/Home'));
 const Images = lazy(() => import('./pages/Images'));
 const Converters = lazy(() => import('./pages/Converters'));
 const Design = lazy(() => import('./pages/Design'));
@@ -61,12 +62,12 @@ import { TimeProvider } from './lib/time/TimeProvider';
 
 export const ThemeContext = createContext();
 
-// The workspace ("/") is a full-bleed OS-style surface: its floating widgets and
-// dock sit at the bottom, so a page footer just collides with them. Hide it there;
-// every other route keeps the footer.
+// The workspace ("/workspace") is a full-bleed OS-style surface: its floating
+// widgets and dock sit at the bottom, so a page footer just collides with them.
+// Hide it there; every other route keeps the footer.
 function AppFooter() {
   const { pathname } = useLocation();
-  if (pathname === '/') return null;
+  if (pathname === '/workspace') return null;
   return <Footer />;
 }
 
@@ -202,8 +203,10 @@ function App() {
           <main className="min-h-screen flex-1">
           <RoutedBoundary>
           <Routes>
-            <Route path='/' element={<Desktop />} />
-            <Route path='/home' element={<Home />} />
+            <Route path='/' element={<Home />} />
+            <Route path='/workspace' element={<Desktop />} />
+            {/* Back-compat: the landing used to live at /home */}
+            <Route path='/home' element={<Navigate to='/' replace />} />
             <Route path='/apps' element={<Apps />} />
             <Route path='/profile' element={<Profile />} />
             <Route path='/settings' element={<Settings />} />

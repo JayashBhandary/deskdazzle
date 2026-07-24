@@ -16,7 +16,7 @@ import {
 // Owns every app-wide keyboard shortcut and the two overlays they drive:
 // the command palette (⌘K) and the shortcut-help sheet (?). Mounted once,
 // inside the router so it can navigate.
-const GO_TARGETS = { h: '/', a: '/apps', d: '/docs' };
+const GO_TARGETS = { h: '/workspace', a: '/apps', d: '/docs' };
 const CHORD_WINDOW_MS = 1200;
 
 function isTyping() {

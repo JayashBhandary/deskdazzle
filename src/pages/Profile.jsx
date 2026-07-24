@@ -293,7 +293,7 @@ function Profile() {
         {/* Quick links */}
         <div className='flex flex-wrap gap-2'>
           <Button variant='outline' asChild>
-            <Link to='/'><Monitor /> Workspace</Link>
+            <Link to='/workspace'><Monitor /> Workspace</Link>
           </Button>
           <Button variant='outline' asChild>
             <Link to='/apps'><LayoutGrid /> All tools</Link>

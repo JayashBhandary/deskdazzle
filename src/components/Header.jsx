@@ -76,7 +76,7 @@ function Header() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const autoHide = location.pathname === '/' && settings.collapsibleHeader && isDesktop;
+  const autoHide = location.pathname === '/workspace' && settings.collapsibleHeader && isDesktop;
   const [headerRevealed, setHeaderRevealed] = useState(false);
   const headerShown = !autoHide || headerRevealed;
   // Collapse the header a moment after the pointer leaves it.

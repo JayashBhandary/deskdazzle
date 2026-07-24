@@ -3,9 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Match the browser UI chrome to the active theme (dark-first shell). -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Offline-first PWA productivity suite — 20+ tools (Office, PDF, Notes, Tasks, Drive) powered by a Rust → WebAssembly core. No backend; optional Firebase sync." />
+    <!-- Installed-app (standalone) behaviour on iOS/iPadOS + Android. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Desk Dazzle" />
     <link rel="apple-touch-icon" href="/logo192.png" />
     <title>Desk Dazzle</title>
 

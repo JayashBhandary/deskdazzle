@@ -22,7 +22,7 @@ const LINK_GROUPS = [
   {
     title: 'Explore',
     links: [
-      { label: 'Workspace', to: '/' },
+      { label: 'Workspace', to: '/workspace' },
       { label: 'All apps', to: '/apps' },
       { label: 'Docs & shortcuts', to: '/docs' },
     ],

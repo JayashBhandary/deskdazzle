@@ -58,7 +58,7 @@ export const PAGES = [
 
 // Navigation links shown in the header and mobile drawer.
 export const NAV_LINKS = [
-  { path: '/', label: 'Workspace', icon: '🖥️' },
+  { path: '/workspace', label: 'Workspace', icon: '🖥️' },
   { path: '/apps', label: 'Apps', icon: '📱' },
   { path: '/docs', label: 'Docs', icon: '🔧' },
 ];

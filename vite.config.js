@@ -19,19 +19,40 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
       manifest: {
+        // `id` pins the app's identity independent of start_url, so changing
+        // start_url later never spawns a "new" installed app.
+        id: '/',
         short_name: 'Desk Dazzle',
-        name: 'Desk Dazzle',
-        start_url: '/apps',
+        name: 'Desk Dazzle — offline-first workspace',
+        description:
+          'Offline-first productivity suite — Office, PDF, Notes, Tasks and a file Drive, powered by an on-device Rust → WebAssembly core. No backend; optional sync.',
+        // Open the installed app straight into the Workspace surface.
+        start_url: '/workspace',
+        scope: '/',
         display: 'standalone',
-        theme_color: '#000000',
-        background_color: '#ffffff',
+        // Prefer a chromeless window where supported, fall back to standalone.
+        display_override: ['standalone', 'minimal-ui'],
+        // Focus/reuse an already-open window instead of spawning another.
+        launch_handler: { client_mode: ['navigate-existing', 'auto'] },
+        orientation: 'any',
+        lang: 'en',
+        dir: 'ltr',
+        categories: ['productivity', 'utilities', 'business'],
+        theme_color: '#0a0a0b',
+        background_color: '#0a0a0b',
         icons: [
           { src: 'favicon.ico', sizes: '64x64 32x32 24x24 16x16', type: 'image/x-icon' },
-          { src: 'logo192.png', type: 'image/png', sizes: '192x192' },
-          { src: 'logo512.png', type: 'image/png', sizes: '512x512' },
+          { src: 'logo192.png', type: 'image/png', sizes: '192x192', purpose: 'any' },
+          { src: 'logo512.png', type: 'image/png', sizes: '512x512', purpose: 'any' },
+          // Maskable variant so Android draws the icon inside its adaptive mask
+          // instead of letterboxing it on a white plate.
+          { src: 'maskable_icon_x192.png', type: 'image/png', sizes: '192x192', purpose: 'maskable' },
         ],
         shortcuts: [
-          { name: 'Documentation', url: '/docs' },
+          { name: 'Workspace', short_name: 'Workspace', url: '/workspace' },
+          { name: 'All apps', short_name: 'Apps', url: '/apps' },
+          { name: 'Documentation', short_name: 'Docs', url: '/docs' },
+          { name: 'Settings', short_name: 'Settings', url: '/settings' },
         ],
       },
       workbox: {
